@@ -1,0 +1,10 @@
+#!/usr/bin/env node
+
+const program = require('commander')
+const _ = require('lodash')
+const pkg = require('../libs/application/get-package')
+const check = require('../libs/application/check')
+if (!check.isExists(pkg, 'application.less') || !check.isArray(pkg, 'application.less')) return false
+const { application: { less } } = pkg
+
+console.log(less)

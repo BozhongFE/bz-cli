@@ -1,0 +1,36 @@
+{
+  "name": "bz-cli",
+  "version": "0.0.1",
+  "description": "A command-line tool for BozhongFE",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "bz": "node ./bin/bz"
+  },
+  "bin": {
+    "bz": "bin/bz"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/BozhongFE/bz-cli.git"
+  },
+  "keywords": [
+    "bash",
+    "shell",
+    "node",
+    "bin",
+    "command",
+    "command-line"
+  ],
+  "author": "unclay <wcl58981298@gmail.com>",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/BozhongFE/bz-cli/issues"
+  },
+  "homepage": "https://github.com/BozhongFE/bz-cli#readme",
+  "dependencies": {
+    "chalk": "^2.4.2",
+    "commander": "^2.20.0",
+    "lodash": "^4.17.11"
+  }
+}
