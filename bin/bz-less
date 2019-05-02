@@ -1,10 +1,62 @@
 #!/usr/bin/env node
 
-const program = require('commander')
-const _ = require('lodash')
-const pkg = require('../libs/application/get-package')
-const check = require('../libs/application/check')
-if (!check.isExists(pkg, 'application.less') || !check.isArray(pkg, 'application.less')) return false
-const { application: { less } } = pkg
+// nodejs module
+const { resolve } = require('path');
+// gulp module
+const gulp = require('gulp');
+const less = require('gulp-less');
+// base module
+const { getPackage, exists, error, cwd, debug } = require('../libs/utils');
+// application variable
+const pkg = getPackage();
+const app = pkg.application || {};
+let appLess = app.less || [initAppLess()];
 
-console.log(less)
+// appLess = appLess.map(initAppLess)
+appLess = appLess.filter((item, index) => {
+  item.__index__ = index;
+  // from's file exists?
+  if (!exists(item.from)) {
+    error(`less来源路径[${index}]: ${item.from} Not Found`);
+    return false;
+  }
+  // from's file is less?
+  if (!/\.less$/.test(item.from)) {
+    error(`less来源路径[${index}]: ${item.from} Not A Less File`);
+    return false;
+  }
+  // to's file is css?
+  if (item.to && !/\.css$/.test(item.to)) {
+    error(`less结果路径[${index}]: ${item.to} Not A CSS File`);
+    return false;
+  }
+  return true;
+}).map(initAppLess);
+
+appLess.map((item) => {
+  const index = item.__index__;
+  if (!exists(item.from)) {
+    error(`less来源[${index}]:`, resolve(cwd, item.from), 'Not Found');
+    return false;
+  }
+  debug(item.debug, `less来源路径[${index}]:`, item.from);
+  debug(item.debug, `less结果路径[${index}]:`, item.to);
+
+  gulp.src(item.from)
+    .pipe(less(item.less))
+    .pipe(gulp.dest(item.dirs));
+});
+
+// init application.less config
+function initAppLess(conf) {
+  conf =  Object.assign({
+    from: resolve(cwd, 'css/style.less'),
+    debug: app.debug || true,
+  }, conf);
+
+  conf.from = resolve(cwd, conf.from);
+  conf.to = conf.to ? resolve(cwd, conf.to) : resolve(cwd, conf.from.replace(/less$/i, 'css'));
+  conf.name = conf.to.match(/[^/]+\.css$/i)[0];
+  conf.dirs = conf.to.replace(/\/[^/]+\.css$/i, '');
+  return conf;
+}

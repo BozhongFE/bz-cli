@@ -4,8 +4,9 @@
   "description": "A command-line tool for BozhongFE",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
-    "bz": "node ./bin/bz"
+    "test": "npm run eslint",
+    "eslint": "eslint libs/* bin/*",
+    "mocha": "mocha test/**/*.test.js"
   },
   "bin": {
     "bz": "bin/bz"
@@ -31,6 +32,13 @@
   "dependencies": {
     "chalk": "^2.4.2",
     "commander": "^2.20.0",
+    "gulp": "^4.0.1",
+    "gulp-less": "^4.0.1",
     "lodash": "^4.17.11"
+  },
+  "devDependencies": {
+    "chai": "^4.2.0",
+    "eslint": "^5.16.0",
+    "mocha": "^6.1.4"
   }
 }
