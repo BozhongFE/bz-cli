@@ -5,52 +5,29 @@ const { resolve } = require('path');
 // commander
 const program = require('commander');
 // gulp module
-const lazypipe = require('lazypipe');
 const gulp = require('gulp');
 const watch = require('gulp-watch');
 const gulpif = require('gulp-if');
 const rename = require('gulp-rename');
+const header = require('gulp-header');
 const less = require('gulp-less');
 const cleanCSS = require('gulp-clean-css');
 const autoprefixer = require('gulp-autoprefixer');
 // base module
-const { getPackage, exists, error, cwd, debug, info } = require('../libs/utils');
+const { getPackageSrc, getPackage, exists, error, cwd, debug, info } = require('../libs/utils');
 
 // define command
 program
   .usage('[options]')
   .option('-w, --watch', 'listen for file changes')
   .parse(process.argv);
-  
-// application variable
-const pkg = getPackage();
-const app = pkg.application || {};
-let appLess = app.less || [initAppLess()];
-
-// application config
-appLess = appLess.filter((item, index) => {
-  item.__index__ = index;
-  // from's file exists?
-  if (!exists(item.from)) {
-    error(`less来源路径[${index}]: ${item.from} Not Found`);
-    return false;
-  }
-  // from's file is less?
-  if (!/\.less$/.test(item.from)) {
-    error(`less来源路径[${index}]: ${item.from} Not A Less File`);
-    return false;
-  }
-  // to's file is css?
-  if (item.to && !/\.css$/.test(item.to)) {
-    error(`less结果路径[${index}]: ${item.to} Not A CSS File`);
-    return false;
-  }
-  return true;
-}).map(initAppLess);
 
 // application watch
 if (program.watch) {
-  watch(cwd + '/**/*.less', {}, build);
+  watch([
+    cwd + '/**/*.less',
+    getPackageSrc(),
+  ], {}, build);
 }
 
 build();
@@ -58,31 +35,67 @@ build();
 // build
 function build() {
   info(`[${getTime()}]`, 'less 编译开始');
+  // application variable
+  const pkg = getPackage();
+  if (!pkg) {
+    error(getPackageSrc(), '读取失败或json格式不对');
+    info(`[${getTime()}]`, 'less 编译中断');
+    return false;
+  }
+  const app = pkg.application || {};
+  app.debug = app.debug || false;
+  let appLess = app.less || [initAppLess(undefined, app.debug)];
+
+  // application config
+  appLess = appLess.filter((item, index) => {
+    item.__index__ = index;
+    // from's file exists?
+    if (!exists(item.from)) {
+      error(`less源文件[${index}]: ${item.from} Not Found`);
+      return false;
+    }
+    // from's file is less?
+    if (!/\.less$/.test(item.from)) {
+      error(`less源文件[${index}]: ${item.from} Not A Less File`);
+      return false;
+    }
+    // to's file is css?
+    if (item.to && !/\.css$/.test(item.to)) {
+      error(`less目标文件[${index}]: ${item.to} Not A CSS File`);
+      return false;
+    }
+    return true;
+  }).map(initAppLess);
+
   appLess.map((item) => {
     const index = item.__index__;
     if (!exists(item.from)) {
-      error(`less来源[${index}]:`, resolve(cwd, item.from), 'Not Found');
+      error(`less源文件[${index}]:`, resolve(cwd, item.from), 'Not Found');
       return false;
     }
-    debug(item.debug, `less来源路径[${index}]:`, item.from);
-    debug(item.debug, `less结果路径[${index}]:`, item.to, item.cssmin ? '(cssmin)' : '');
+    debug(item.debug, `less源文件[${index}]:`, item.from);
+    debug(item.debug, `less目标文件[${index}]:`, item.to, item.cssmin ? '(cssmin)' : '');
   
-    const cleanCSSLazypipe = getCleanCSS(item.cleanCSS, item.dirs);
     gulp.src(item.from)
       .pipe(less(item.options))
       .pipe(autoprefixer())
       .pipe(rename(item.name))
-      .pipe(gulp.dest(item.dirs))
-      .pipe(gulpif(item.cssmin, cleanCSSLazypipe()));
+      .pipe(gulpif(item.cssmin, cleanCSS(item.cleanCSS)))
+      .pipe(header(item.header, {
+        pkg,
+        less: item,
+      }))
+      .pipe(gulp.dest(item.dirs));
   });
   info(`[${getTime()}]`, 'less 编译结束');
 }
 
 // init application.less config
-function initAppLess(conf) {
+function initAppLess(conf, isDebug = true) {
   conf =  Object.assign({
     from: resolve(cwd, 'css/style.less'),
-    debug: app.debug || true,
+    debug: isDebug,
+    cssmin: false
   }, conf);
 
   conf.from = resolve(cwd, conf.from);
@@ -90,12 +103,6 @@ function initAppLess(conf) {
   conf.name = conf.to.match(/[^/]+\.css$/i)[0];
   conf.dirs = conf.to.replace(/\/[^/]+\.css$/i, '');
   return conf;
-}
-
-function getCleanCSS(conf, dirs) {
-  return lazypipe()
-    .pipe(cleanCSS, conf)
-    .pipe(gulp.dest, dirs);
 }
 
 function getTime() {

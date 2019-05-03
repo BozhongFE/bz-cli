@@ -2,7 +2,7 @@ const { writeFileSync, existsSync, unlinkSync, readFileSync } = require('fs');
 const { resolve } = require('path');
 const { expect } = require('chai');
 const chalk = require('chalk');
-const { cwd, _debug, _error, _info, exists, getPackage } = require('../../libs/utils');
+const { cwd, _debug, _error, _info, exists, getPackageSrc, getPackage } = require('../../libs/utils');
 
 describe('libs/utils.js', () => {
   it('cwd', () => {
@@ -57,14 +57,19 @@ describe('libs/utils.js', () => {
     expect(exists('hello')).to.equal(false);
   });
 
-  it('getPackage: current package.json', () => {
-    const pkg = getPackage();
-    expect(pkg).to.equal(require('../../package.json'));
+  it('getPackageSrc', () => {
+    const pkgSrc = getPackageSrc();
+    expect(pkgSrc).to.equal(resolve(cwd, 'package.json'));
+    expect(pkgSrc).to.equal(resolve(__dirname, '../../package.json'));
   });
 
-  it('getPackage: cwd\'s root package.json', () => {
+  it('getPackage', () => {
     const pkg = getPackage();
     let pkgfs = readFileSync(resolve(cwd, 'package.json'), 'utf-8');
     expect(pkg).to.deep.equal(JSON.parse(pkgfs));
+    expect(pkg).to.deep.equal(require('../../package.json'));
+
+    const pkg2 = getPackage('test/package.json');
+    expect(pkg2).to.equal(false);
   });
 });
