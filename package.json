@@ -1,11 +1,11 @@
 {
   "name": "bz-cli",
-  "version": "0.0.1",
+  "version": "1.0.0",
   "description": "A command-line tool for BozhongFE",
   "main": "index.js",
   "scripts": {
-    "test": "npm run eslint",
-    "eslint": "eslint libs/* bin/*",
+    "test": "npm run eslint & npm run mocha",
+    "eslint": "eslint --fix libs/* bin/*",
     "mocha": "mocha test/**/*.test.js"
   },
   "bin": {
@@ -33,7 +33,12 @@
     "chalk": "^2.4.2",
     "commander": "^2.20.0",
     "gulp": "^4.0.1",
+    "gulp-autoprefixer": "^6.1.0",
+    "gulp-clean-css": "^4.2.0",
+    "gulp-if": "^2.0.2",
     "gulp-less": "^4.0.1",
+    "gulp-rename": "^1.4.0",
+    "lazypipe": "^1.0.2",
     "lodash": "^4.17.11"
   },
   "devDependencies": {

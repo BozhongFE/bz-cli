@@ -3,8 +3,13 @@
 // nodejs module
 const { resolve } = require('path');
 // gulp module
+const lazypipe = require('lazypipe');
 const gulp = require('gulp');
+const gulpif = require('gulp-if');
+const rename = require('gulp-rename');
 const less = require('gulp-less');
+const cleanCSS = require('gulp-clean-css');
+const autoprefixer = require('gulp-autoprefixer');
 // base module
 const { getPackage, exists, error, cwd, debug } = require('../libs/utils');
 // application variable
@@ -40,11 +45,15 @@ appLess.map((item) => {
     return false;
   }
   debug(item.debug, `less来源路径[${index}]:`, item.from);
-  debug(item.debug, `less结果路径[${index}]:`, item.to);
+  debug(item.debug, `less结果路径[${index}]:`, item.to, item.cssmin ? '(cssmin)' : '');
 
+  const cleanCSSLazypipe = getCleanCSS(item.cleanCSS, item.dirs);
   gulp.src(item.from)
     .pipe(less(item.less))
-    .pipe(gulp.dest(item.dirs));
+    .pipe(autoprefixer())
+    .pipe(rename(item.name))
+    .pipe(gulp.dest(item.dirs))
+    .pipe(gulpif(item.cssmin, cleanCSSLazypipe()));
 });
 
 // init application.less config
@@ -59,4 +68,10 @@ function initAppLess(conf) {
   conf.name = conf.to.match(/[^/]+\.css$/i)[0];
   conf.dirs = conf.to.replace(/\/[^/]+\.css$/i, '');
   return conf;
+}
+
+function getCleanCSS(conf, dirs) {
+  return lazypipe()
+    .pipe(cleanCSS, conf)
+    .pipe(gulp.dest, dirs);
 }
