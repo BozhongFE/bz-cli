@@ -2,7 +2,7 @@ const { writeFileSync, existsSync, unlinkSync, readFileSync } = require('fs');
 const { resolve } = require('path');
 const { expect } = require('chai');
 const chalk = require('chalk');
-const { cwd, _debug, _error, exists, getPackage } = require('../../libs/utils');
+const { cwd, _debug, _error, _info, exists, getPackage } = require('../../libs/utils');
 
 describe('libs/utils.js', () => {
   it('cwd', () => {
@@ -29,6 +29,14 @@ describe('libs/utils.js', () => {
     expect(ret[1]).to.equal(chalk.bold.red(1));
     expect(ret[2]).to.equal(chalk.bold.red('hello'));
     expect(ret[3]).to.equal(chalk.bold.red(true));
+  });
+
+  it('info', () => {
+    const ret = _info(1, 'hello', true);
+    expect(ret[0]).to.equal(chalk.gray('[INFO]'));
+    expect(ret[1]).to.equal(chalk.bold.white(1));
+    expect(ret[2]).to.equal(chalk.bold.white('hello'));
+    expect(ret[3]).to.equal(chalk.bold.white(true));
   });
 
   it('exists: true', () => {

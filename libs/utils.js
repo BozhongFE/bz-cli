@@ -15,6 +15,11 @@ const _error = (...args) => {
   return [chalk.gray('[ERROR]'), ...args];
 };
 
+const _info = (...args) => {
+  args = args.map(item => chalk.bold.white(item));
+  return [chalk.gray('[INFO]'), ...args];
+};
+
 module.exports = {
   cwd,
   debug(...args) {
@@ -24,6 +29,9 @@ module.exports = {
   error(...args) {
     log.call(null, ..._error(...args));
   },
+  info(...args) {
+    log.call(null, ..._info(...args));
+  },
   exists(filepath) {
     return existsSync(path.resolve(cwd, filepath));
   },
@@ -32,5 +40,6 @@ module.exports = {
   },
   // 内部函数，用于单元测试
   _debug,
-  _error
+  _error,
+  _info
 };

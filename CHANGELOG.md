@@ -11,3 +11,8 @@
 - [fix] `less` 编译后的文件名不对
 - [new] `less` 新增 `css` 压缩功能
 - [new] `less` 新增 `css` 前缀（`autoprefixer`）
+
+## 1.0.0-alpha.2
+
+- [new] 基础库新增 `info` 方法，并编写对应的测试用例
+- [new] `less` 新增 `options` `-w` 监听文件变化

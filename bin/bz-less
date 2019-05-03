@@ -2,22 +2,32 @@
 
 // nodejs module
 const { resolve } = require('path');
+// commander
+const program = require('commander');
 // gulp module
 const lazypipe = require('lazypipe');
 const gulp = require('gulp');
+const watch = require('gulp-watch');
 const gulpif = require('gulp-if');
 const rename = require('gulp-rename');
 const less = require('gulp-less');
 const cleanCSS = require('gulp-clean-css');
 const autoprefixer = require('gulp-autoprefixer');
 // base module
-const { getPackage, exists, error, cwd, debug } = require('../libs/utils');
+const { getPackage, exists, error, cwd, debug, info } = require('../libs/utils');
+
+// define command
+program
+  .usage('[options]')
+  .option('-w, --watch', 'listen for file changes')
+  .parse(process.argv);
+  
 // application variable
 const pkg = getPackage();
 const app = pkg.application || {};
 let appLess = app.less || [initAppLess()];
 
-// appLess = appLess.map(initAppLess)
+// application config
 appLess = appLess.filter((item, index) => {
   item.__index__ = index;
   // from's file exists?
@@ -38,23 +48,35 @@ appLess = appLess.filter((item, index) => {
   return true;
 }).map(initAppLess);
 
-appLess.map((item) => {
-  const index = item.__index__;
-  if (!exists(item.from)) {
-    error(`less来源[${index}]:`, resolve(cwd, item.from), 'Not Found');
-    return false;
-  }
-  debug(item.debug, `less来源路径[${index}]:`, item.from);
-  debug(item.debug, `less结果路径[${index}]:`, item.to, item.cssmin ? '(cssmin)' : '');
+// application watch
+if (program.watch) {
+  watch(cwd + '/**/*.less', {}, build);
+}
 
-  const cleanCSSLazypipe = getCleanCSS(item.cleanCSS, item.dirs);
-  gulp.src(item.from)
-    .pipe(less(item.less))
-    .pipe(autoprefixer())
-    .pipe(rename(item.name))
-    .pipe(gulp.dest(item.dirs))
-    .pipe(gulpif(item.cssmin, cleanCSSLazypipe()));
-});
+build();
+
+// build
+function build() {
+  info(`[${getTime()}]`, 'less 编译开始');
+  appLess.map((item) => {
+    const index = item.__index__;
+    if (!exists(item.from)) {
+      error(`less来源[${index}]:`, resolve(cwd, item.from), 'Not Found');
+      return false;
+    }
+    debug(item.debug, `less来源路径[${index}]:`, item.from);
+    debug(item.debug, `less结果路径[${index}]:`, item.to, item.cssmin ? '(cssmin)' : '');
+  
+    const cleanCSSLazypipe = getCleanCSS(item.cleanCSS, item.dirs);
+    gulp.src(item.from)
+      .pipe(less(item.options))
+      .pipe(autoprefixer())
+      .pipe(rename(item.name))
+      .pipe(gulp.dest(item.dirs))
+      .pipe(gulpif(item.cssmin, cleanCSSLazypipe()));
+  });
+  info(`[${getTime()}]`, 'less 编译结束');
+}
 
 // init application.less config
 function initAppLess(conf) {
@@ -74,4 +96,13 @@ function getCleanCSS(conf, dirs) {
   return lazypipe()
     .pipe(cleanCSS, conf)
     .pipe(gulp.dest, dirs);
+}
+
+function getTime() {
+  const date = new Date();
+  const format = num => num < 10 ? `0${num}` : num;
+  const hour = format(date.getHours());
+  const minute = format(date.getMinutes());
+  const second = format(date.getSeconds());
+  return `${hour}:${minute}:${second}`;
 }
