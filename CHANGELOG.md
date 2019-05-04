@@ -27,3 +27,7 @@
 ## 1.0.0-alpha.4
 
 - [new] [less] 新增小图转 `base64`
+
+## 1.0.0-alpha.5
+
+- [new] [js] 新增 `bz js` 命令，用于合并压缩 `js`

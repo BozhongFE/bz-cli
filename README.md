@@ -88,3 +88,73 @@ ps: `application.debug` < `application.less[].debug`
 + less[].base64
 
 默认小图转 [`base64`](https://github.com/Wenqer/gulp-base64)，此参数用于配置 `base64`
+
+
+## js
+
+根据当前项目下的 package.json.application.js[] 配置合并压缩 `js`
+
+```bash
+bz js [options]
+```
+
+配置规范如下：
+```json
+{
+  "name": "project name",
+  ...
+  "application": {
+    "js": [
+      {
+        "from": [ "js/index.less" ],
+        "to": "js/index_bundle.js",
+        "for": "首页脚本"
+        ...
+      }
+    ]
+  }
+}
+```
+
+### [options]
+
++ -w, --watch
+
+监听文件变化，监听 `package.json.application.js[].from`
+
+### package.json
+
++ package.json.application
+
+`bz-cli` 的配置项内容
+
++ package.json.application.js
+
+`js` 命令对应的配置项，详细请看下面
+
+### package.json.application.js
+
++ js[].debug
+
+`debug` 模式，默认值：`true`
+ps: `application.debug` < `application.js[].debug`
+
++ js[].from
+
+`js` 的源文件集合（数组）
+
++ js[].to
+
+`js` 的目标文件（合并压缩后的文件）
+
++ js[].options
+
+[`uglifyjs`](https://github.com/terinjokes/gulp-uglify) 的 `options` 配置
+
++ js[].header
+
+支持 `js` 顶部注释自定义，用的是 [`gulp-header`](https://github.com/tracker1/gulp-header) 插件
+
++ js[].for
+
+默认自带有顶部注释内容，其中有个 `for` 属性说明，可在这里配置，用于说明合并后文件的作用

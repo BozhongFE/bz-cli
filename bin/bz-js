@@ -1,0 +1,129 @@
+#!/usr/bin/env node
+
+// nodejs module
+const { resolve } = require('path');
+// commander
+const program = require('commander');
+// gulp module
+const gulp = require('gulp');
+const rename = require('gulp-rename');
+const header = require('gulp-header');
+const uglify = require('gulp-uglify');
+const watch = require('gulp-watch');
+// base module
+const _ = require('lodash');
+const { getPackageSrc, getPackage, exists, error, cwd, debug, info } = require('../libs/utils');
+
+
+// define command
+program
+  .usage('[options]')
+  .option('-w, --watch', 'listen for file changes')
+  .parse(process.argv);
+
+// -w, --watch
+let isWatch = false;
+
+build();
+
+function build() {
+  info(`[${getTime()}]`, 'js 合并压缩开始');
+  // application variable
+  const pkg = getPackage();
+  if (!pkg) {
+    error(getPackageSrc(), '读取失败或json格式不对');
+    info(`[${getTime()}]`, 'js 合并压缩中断');
+    return false;
+  }
+  const app = pkg.application || {};
+  app.debug = app.debug || false;
+  let appJS = app.js || [];
+  if (!appJS || appJS.length === 0) {
+    error('package.json.application.js 不能为空');
+    return false;
+  }
+
+  appJS = appJS.filter((item, index) => {
+    item.__index__ = index;
+    // from is array?
+    if (!_.isArray(item.from) || item.from.length === 0) {
+      error(`application.js[${index}].from: Not Array Or Null`);
+      return false;
+    }
+    const fromLength = item.from.length;
+    for (let i = 0; i < fromLength; i += 1) {
+      // from's file exists?
+      if (!exists(item.from[i])) {
+        error(`application.js[${index}].from[${i}]: ${item.from[i]} Not Found`);
+        return false;
+      }
+      // from's file is javascript?
+      if (!/\.js$/.test(item.from[i])) {
+        error(`application.js[${index}].from[${i}]: ${item.from[i]} Not A Less File`);
+        return false;
+      }
+    }
+
+    // to's file is jsvascript?
+    if (!item.to || !/\.js$/.test(item.to)) {
+      error(`application.js[${index}].to: ${item.to} Not A JS File`);
+      return false;
+    }
+    return true;
+  }).map((item) => {
+    return initAppJS(item, app.debug);
+  });
+
+  // -w, --watch
+  if (program.watch && !isWatch) {
+    isWatch = true;
+    const froms = appJS.reduce((total, item) => total.concat(item.from), []);
+    watch([
+      ...froms,
+      getPackageSrc(),
+    ], {}, build);
+  }
+
+  appJS.map((item) => {
+    const index = item.__index__;
+    debug(item.debug, `源文件[${index}]:`, item.from);
+    debug(item.debug, `目标文件[${index}]:`, item.to);
+
+    gulp.src(item.from)
+      .pipe(rename(item.name))
+      .pipe(uglify(item.options).on('error', error))
+      .pipe(header(item.comment + item.header, {
+        pkg,
+        item
+      }))
+      .pipe(gulp.dest(item.dirs));
+  });
+  info(`[${getTime()}]`, 'js 合并压缩结束');
+}
+
+function initAppJS(conf, isDebug = true) {
+  conf =  Object.assign({
+    debug: isDebug,
+    comment: `/**
+ * Date: ${new Date().toLocaleString()}
+ * Include: ${conf.from}
+ * For: ${conf.for || 'Not configured'}
+ */
+`,
+  }, conf);
+
+  conf.from = conf.from.map((item) => resolve(cwd, item));
+  conf.to = resolve(cwd, conf.to);
+  conf.name = conf.to.match(/[^/]+\.js$/i)[0];
+  conf.dirs = conf.to.replace(/\/[^/]+\.js$/i, '');
+  return conf;
+}
+
+function getTime() {
+  const date = new Date();
+  const format = num => num < 10 ? `0${num}` : num;
+  const hour = format(date.getHours());
+  const minute = format(date.getMinutes());
+  const second = format(date.getSeconds());
+  return `${hour}:${minute}:${second}`;
+}

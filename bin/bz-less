@@ -74,8 +74,8 @@ function build() {
       error(`less源文件[${index}]:`, resolve(cwd, item.from), 'Not Found');
       return false;
     }
-    debug(item.debug, `less源文件[${index}]:`, item.from);
-    debug(item.debug, `less目标文件[${index}]:`, item.to, item.cssmin ? '(cssmin)' : '');
+    debug(item.debug, `源文件[${index}]:`, item.from);
+    debug(item.debug, `目标文件[${index}]:`, item.to, item.cssmin ? '(cssmin)' : '');
   
     gulp.src(item.from)
       .pipe(less(item.options))

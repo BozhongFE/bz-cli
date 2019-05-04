@@ -7,4 +7,5 @@ program
   .version(pkg.version)
   .usage('<command> [options]')
   .command('less', 'less command')
+  .command('js', 'merge and compression javscript')
   .parse(process.argv);
