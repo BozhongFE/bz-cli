@@ -84,3 +84,7 @@ ps: `application.debug` < `application.less[].debug`
 + less[].header
 
 支持 `css` 头部注释自定义，用的是 [`gulp-header`](https://github.com/tracker1/gulp-header) 插件
+
++ less[].base64
+
+默认小图转 [`base64`](https://github.com/Wenqer/gulp-base64)，此参数用于配置 `base64`

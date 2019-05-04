@@ -23,3 +23,7 @@
 - [new] [libs] 新增 `getPackageSrc`，获取 `package.json` 对应的路径
 - [new] [less] `watcher` 新增 `package.json` 监听
 - [new] [less] 新增 `less[].header` 参数，用于添加 `css` 头部注释
+
+## 1.0.0-alpha.4
+
+- [new] [less] 新增小图转 `base64`

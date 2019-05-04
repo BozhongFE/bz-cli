@@ -13,6 +13,7 @@ const header = require('gulp-header');
 const less = require('gulp-less');
 const cleanCSS = require('gulp-clean-css');
 const autoprefixer = require('gulp-autoprefixer');
+const base64 = require('gulp-base64');
 // base module
 const { getPackageSrc, getPackage, exists, error, cwd, debug, info } = require('../libs/utils');
 
@@ -78,6 +79,7 @@ function build() {
   
     gulp.src(item.from)
       .pipe(less(item.options))
+      .pipe(base64(item.base64))
       .pipe(autoprefixer())
       .pipe(rename(item.name))
       .pipe(gulpif(item.cssmin, cleanCSS(item.cleanCSS)))
