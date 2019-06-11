@@ -4,8 +4,10 @@
 
 ## 使用方法
 
+目前 `bz-cli` 被占用，全局安装用 github 地址来安装
+
 ```bash
-npm i -g bz-cli
+npm i -g https://github.com/BozhongFE/bz-cli
 bz <command> [options]
 ```
 
