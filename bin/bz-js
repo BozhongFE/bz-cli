@@ -6,10 +6,11 @@ const { resolve } = require('path');
 const program = require('commander');
 // gulp module
 const gulp = require('gulp');
-const rename = require('gulp-rename');
+const gulpif = require('gulp-if');
 const header = require('gulp-header');
 const uglify = require('gulp-uglify');
 const watch = require('gulp-watch');
+const concat = require('gulp-concat');
 // base module
 const _ = require('lodash');
 const { getPackageSrc, getPackage, exists, error, cwd, debug, info } = require('../libs/utils');
@@ -86,15 +87,16 @@ function build() {
 
   appJS.map((item) => {
     const index = item.__index__;
-    debug(item.debug, `源文件[${index}]:`, item.from);
+    debug(item.debug, `源文件[${index}]:`, item.from.join('\r\n        　　　   　'));
     debug(item.debug, `目标文件[${index}]:`, item.to);
-
     gulp.src(item.from)
-      .pipe(rename(item.name))
-      .pipe(uglify(item.options).on('error', error))
+      .pipe(gulpif(item.jsmin, uglify(item.uglifyjs).on('error', error)))
+      .pipe(concat(item.name, Object.assign({
+        newLine: '\r\n',
+      }, item.concat)))
       .pipe(header(item.comment + item.header, {
         pkg,
-        item
+        item,
       }))
       .pipe(gulp.dest(item.dirs));
   });
@@ -110,6 +112,7 @@ function initAppJS(conf, isDebug = true) {
  * For: ${conf.for || 'Not configured'}
  */
 `,
+    header: '',
   }, conf);
 
   conf.from = conf.from.map((item) => resolve(cwd, item));

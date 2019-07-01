@@ -149,7 +149,16 @@ ps: `application.debug` < `application.js[].debug`
 
 `js` 的目标文件（合并压缩后的文件）
 
-+ js[].options
++ js[].concat
+
+合并 `js`，默认每个 `js` 独立占用一行  
+[`concat`](https://github.com/gulp-community/gulp-concat) 的配置
+
++ js[].jsmin
+
+是否压缩 `js`，默认值：`false`，压缩用的是 `uglifyjs`
+
++ js[].uglifyjs
 
 [`uglifyjs`](https://github.com/terinjokes/gulp-uglify) 的 `options` 配置
 

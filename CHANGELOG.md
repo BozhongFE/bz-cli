@@ -31,3 +31,8 @@
 ## 1.0.0-alpha.5
 
 - [new] [js] 新增 `bz js` 命令，用于合并压缩 `js`
+
+## 1.0.0-alpha.6
+
+- [fix] [js] 修正合并 `js` 功能，header 为空出现 `undefined` 问题
+- [new] [js] 新增压缩 `js` 开关
