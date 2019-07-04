@@ -1,6 +1,6 @@
 {
   "name": "bz-cli",
-  "version": "1.0.0-alpha.6",
+  "version": "1.0.0-alpha.7",
   "description": "A command-line tool for BozhongFE",
   "main": "index.js",
   "scripts": {
@@ -44,7 +44,8 @@
     "gulp-rename": "^1.4.0",
     "gulp-uglify": "^3.0.2",
     "gulp-watch": "^5.0.1",
-    "lodash": "^4.17.11"
+    "lodash": "^4.17.11",
+    "node-cli-config": "^0.0.1"
   },
   "devDependencies": {
     "chai": "^4.2.0",

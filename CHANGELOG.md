@@ -36,3 +36,7 @@
 
 - [fix] [js] 修正合并 `js` 功能，header 为空出现 `undefined` 问题
 - [new] [js] 新增压缩 `js` 开关
+
+## 1.0.0-alpha.7
+
+- [new] [config] 新增 `bz config` 命令，用于自定义工具命令的配置文件

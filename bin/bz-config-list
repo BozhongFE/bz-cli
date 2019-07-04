@@ -1,0 +1,14 @@
+#!/usr/bin/env node
+
+const program = require('commander');
+const bzConf = require('../libs/config');
+
+program
+  .option('--json', 'format: json')
+  .parse(process.argv);
+
+const infos = bzConf.echo(program.json);
+infos.forEach((info) => {
+  // eslint-disable-next-line no-console
+  console.log(info);
+});

@@ -1,0 +1,19 @@
+#!/usr/bin/env node
+
+const program = require('commander');
+const bzConf = require('../libs/config');
+const { error } = require('../libs/utils');
+
+program
+  .usage('<key> <value>')
+  .parse(process.argv);
+
+function set() {
+  if (program.args.length === 0) {
+    return error('bz config set <key> <value>');
+  }
+  const [key, value] = program.args;
+  bzConf.set(key, value || '');
+  bzConf.write(bzConf.config());
+}
+set();

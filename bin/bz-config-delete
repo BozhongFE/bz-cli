@@ -1,0 +1,19 @@
+#!/usr/bin/env node
+
+const program = require('commander');
+const bzConf = require('../libs/config');
+const { error } = require('../libs/utils');
+
+program
+  .usage('<key>')
+  .parse(process.argv);
+
+function del() {
+  if (program.args.length === 0) {
+    return error('bz config delete <key>');
+  }
+  const config = bzConf.config();
+  delete config[program.args[0]];
+  bzConf.write(config);
+}
+del();

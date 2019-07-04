@@ -10,6 +10,7 @@ globals:
   describe: readonly
   it: readonly
   __dirname: readonly
+  Buffer: readonly
 parserOptions:
   ecmaVersion: 2018
 rules:

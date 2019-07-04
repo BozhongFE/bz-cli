@@ -1,0 +1,10 @@
+#!/usr/bin/env node
+
+const program = require('commander');
+
+program
+  .usage('<command>')
+  .command('set', 'set <key> <value>')
+  .command('delete', 'delete <key>')
+  .command('list', 'list [--json]')
+  .parse(process.argv);
