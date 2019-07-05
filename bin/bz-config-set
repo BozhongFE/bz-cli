@@ -2,7 +2,7 @@
 
 const program = require('commander');
 const bzConf = require('../libs/config');
-const { error } = require('../libs/utils');
+const { error } = require('../libs/log');
 
 program
   .usage('<key> <value>')

@@ -169,3 +169,16 @@ ps: `application.debug` < `application.js[].debug`
 + js[].for
 
 默认自带有顶部注释内容，其中有个 `for` 属性说明，可在这里配置，用于说明合并后文件的作用
+
+
+## config
+
+配置命令行工具
+
+### command
+
+```bash
+bz config set <key> <value>
+bz config delete <key>
+bz config list [--json]
+```

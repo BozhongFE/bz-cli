@@ -15,7 +15,9 @@ const cleanCSS = require('gulp-clean-css');
 const autoprefixer = require('gulp-autoprefixer');
 const base64 = require('gulp-base64');
 // base module
-const { getPackageSrc, getPackage, exists, error, cwd, debug, info } = require('../libs/utils');
+const { getPackageSrc, exists, cwd } = require('../libs/utils');
+const { debug, info, error } = require('../libs/log');
+const { getFile } = require('../libs/fs');
 
 // define command
 program
@@ -37,12 +39,8 @@ build();
 function build() {
   info(`[${getTime()}]`, 'less 编译开始');
   // application variable
-  const pkg = getPackage();
-  if (!pkg) {
-    error(getPackageSrc(), '读取失败或json格式不对');
-    info(`[${getTime()}]`, 'less 编译中断');
-    return false;
-  }
+  const packageSrc = getPackageSrc();
+  const pkg = getFile(packageSrc);
   const app = pkg.application || {};
   app.debug = app.debug || false;
   let appLess = app.less || [initAppLess(undefined, app.debug)];

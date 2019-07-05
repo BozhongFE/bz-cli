@@ -13,7 +13,9 @@ const watch = require('gulp-watch');
 const concat = require('gulp-concat');
 // base module
 const _ = require('lodash');
-const { getPackageSrc, getPackage, exists, error, cwd, debug, info } = require('../libs/utils');
+const { getPackageSrc, exists, cwd } = require('../libs/utils');
+const { debug, info, error } = require('../libs/log');
+const { getFile } = require('../libs/fs');
 
 
 // define command
@@ -30,12 +32,8 @@ build();
 function build() {
   info(`[${getTime()}]`, 'js 合并压缩开始');
   // application variable
-  const pkg = getPackage();
-  if (!pkg) {
-    error(getPackageSrc(), '读取失败或json格式不对');
-    info(`[${getTime()}]`, 'js 合并压缩中断');
-    return false;
-  }
+  const packageSrc = getPackageSrc();
+  const pkg = getFile(packageSrc);
   const app = pkg.application || {};
   app.debug = app.debug || false;
   let appJS = app.js || [];
@@ -90,7 +88,7 @@ function build() {
     debug(item.debug, `源文件[${index}]:`, item.from.join('\r\n        　　　   　'));
     debug(item.debug, `目标文件[${index}]:`, item.to);
     gulp.src(item.from)
-      .pipe(gulpif(item.jsmin, uglify(item.uglifyjs).on('error', error)))
+      .pipe(gulpif(item.jsmin, uglify(item.uglifyjs)))
       .pipe(concat(item.name, Object.assign({
         newLine: '\r\n',
       }, item.concat)))

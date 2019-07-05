@@ -1,6 +1,6 @@
 {
   "name": "bz-cli",
-  "version": "1.0.0-alpha.7",
+  "version": "1.0.0-alpha.8",
   "description": "A command-line tool for BozhongFE",
   "main": "index.js",
   "scripts": {

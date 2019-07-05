@@ -40,3 +40,7 @@
 ## 1.0.0-alpha.7
 
 - [new] [config] 新增 `bz config` 命令，用于自定义工具命令的配置文件
+
+## 1.0.0-alpha.8
+
+- [optimize] [libs] 提取 log.js，新增 fs.js 处理文件读取，并对命令的依赖进行修改
