@@ -1,5 +1,5 @@
 /**
- * 读取文件（内置缓存，通过 watch 更新缓存）
+ * 读取文件
  */
 const { existsSync, readFileSync } = require('fs');
 const { error } = require('./log');
@@ -8,7 +8,7 @@ const cache = new Map();
 
 const cfs = module.exports = {
   /**
-   * 读取文件（内置缓存，通过 watch 更新缓存）
+   * 读取文件
    * @param {path} file 文件路径
    * @param {object} options 可选参数
    *    - @subparam {string} options.type 格式化类型，默认 json
@@ -58,14 +58,8 @@ const cfs = module.exports = {
    * @return {string|undefined} 返回文件的数据类型，例如：**.json => json; **.txt => txt
    */
   getFileType(file) {
-    const type = file.match(/\.(.+)$/);
+    const type = file.match(/\.([^.]+)$/i);
     if (type && type.length >= 2) return type[1];
     return void 0;
   },
 };
-
-// let debounceTimeout;
-// function debounce(callback) {
-//   clearTimeout(debounceTimeout);
-//   debounceTimeout = setTimeout(callback, 0);
-// }

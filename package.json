@@ -1,11 +1,11 @@
 {
   "name": "bz-cli",
-  "version": "1.0.0-alpha.8",
+  "version": "1.0.0-alpha.9",
   "description": "A command-line tool for BozhongFE",
   "main": "index.js",
   "scripts": {
     "test": "npm run eslint & npm run mocha",
-    "eslint": "eslint --fix libs/* bin/*",
+    "eslint": "eslint --fix libs/*.js bin/*",
     "mocha": "mocha test/**/*.test.js"
   },
   "bin": {

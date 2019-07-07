@@ -9,4 +9,5 @@ program
   .command('less', 'less command')
   .command('js', 'merge and compression javscript')
   .command('config', 'config .bzrc')
+  .command('html', 'build html')
   .parse(process.argv);

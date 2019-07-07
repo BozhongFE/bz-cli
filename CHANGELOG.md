@@ -44,3 +44,7 @@
 ## 1.0.0-alpha.8
 
 - [optimize] [libs] 提取 log.js，新增 fs.js 处理文件读取，并对命令的依赖进行修改
+
+## 1.0.0-alpha.9
+
+- [new] [html] 新增 `bz html` 命令，用于构建html

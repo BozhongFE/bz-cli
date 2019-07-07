@@ -1,0 +1,167 @@
+#!/usr/bin/env node
+
+// nodejs module
+const { readdirSync, statSync, writeFileSync, existsSync, readFileSync } = require('fs');
+const { resolve } = require('path');
+// commander
+const program = require('commander');
+// gulp module
+const watch = require('gulp-watch');
+// base module
+const { getPackageSrc, cwd, debounce } = require('../libs/utils');
+const { debug, info, error } = require('../libs/log');
+const bzConf = require('../libs/config');
+const { getFile } = require('../libs/fs');
+
+// define command
+program
+  .usage('[options]')
+  .description('build _*.html to *.html')
+  .option('-w, --watch', 'listen for file changes')
+  .parse(process.argv);
+
+const packageSrc = getPackageSrc();
+
+
+
+start();
+buildAll();
+function start() {
+  const pkg = getPackage();
+  const isDebug = pkg.debug;
+
+  const configFile = bzConf.get('config');
+  if (!existsSync(configFile)) {
+    error('请检查 bz-cli 的 config 配置文件是否存在');
+    error(`config = ${configFile}`);
+    return error('Example: bz config set config **/**.json');
+  }
+  debug(isDebug, '当前配置', configFile);
+  
+  // 获取 config
+  const config = getFile(configFile);
+  // 注入全局变量（例如：域名）
+  if (config.global) {
+    Object.assign(global, config.global);
+    debug(isDebug, '全局变量注入成功');
+  }
+
+  // application watch
+  if (program.watch) {
+    return watch([
+      cwd + '/**/_*.html',
+      getPackageSrc(),
+    ], {}, (vinyl) => {
+      // One save triggers two changes
+      debounce(() => {
+        if (vinyl.path.match(/.html$/)) {
+          info(`[${getTime()}]`, 'html 编译开始');
+          buildOne(vinyl.path);
+          info(`[${getTime()}]`, 'html 编译结束');
+        } else if (vinyl.path.match(/package\.json$/)) {
+          buildAll();
+        }
+      });
+    });
+  }
+}
+
+function buildAll() {
+  let files = [];
+  info(`[${getTime()}]`, 'html 编译开始');
+  const dirs = readdirSync(cwd);
+  files = dirs.filter((item) => item.match(/^_.*\.html$/)).map((item) => ({
+    path: resolve(cwd, item),
+    mtime: statSync(item).mtime,
+  })).filter((item) => {
+    if (item.mtime > new Date() - 24 * 3600000) {
+      return item;
+    }
+  });
+  files.forEach((item) => buildOne(item.path));
+  info(`[${getTime()}]`, 'html 编译结束');
+}
+
+function buildOne(file) {
+  let html = readFileSync(file, 'utf8');
+  // 需要编译的php
+  const phpCode = getPHP(html);
+  // 提取php语法
+  const phpEvent = getEvent(phpCode);
+  // 编译php
+  for (let i = 0; i < phpEvent.length; i += 1) {
+    try {
+      html = html.replace(phpCode[i], eval(phpEvent[i]) );
+    } catch(err){
+      html = html.replace(phpCode[i], `[${err}]`);
+    }
+  }
+  const newfile = file.replace(/_.*\.html$/, (filename) => filename.replace('_', ''));
+  writeFileSync(newfile, html, 'utf8');
+  const pkg = getPackage();
+  if (pkg.debug) {
+    debug(pkg.debug, '源文件', file);
+    debug(pkg.debug, '目标文件', newfile);
+  }
+}
+
+function getTime() {
+  const date = new Date();
+  const format = num => num < 10 ? `0${num}` : num;
+  const hour = format(date.getHours());
+  const minute = format(date.getMinutes());
+  const second = format(date.getSeconds());
+  return `${hour}:${minute}:${second}`;
+}
+
+/**
+ * 通过 html 获取 php 语法
+ * return [function|var]
+ */
+function getPHP(contents){
+  return contents.match(/<\?[=||php][^<?||?>]*\?>/g) ? contents.match(/<\?[=||php][^<?||?>]*\?>/g) : [];
+}
+/**
+ * 通过 php 语法获取对应的变量或函数
+ * return [function|var]
+ */
+function getEvent(php){
+  var arr = [];
+  for(var i=0; i<php.length; i++){
+    arr[i] = php[i].replace(/<\?(php|=)?|\?>/g, '');
+  }
+  return arr;
+}
+
+/**
+ * 扩展 PHP 语法
+ * @method B {block_name} 获取旧版 block 内容
+ * return 
+ */
+// eslint-disable-next-line no-unused-vars
+function B(name){
+  try {
+    return 'asdasf';
+  // eslint-disable-next-line no-unreachable
+  } catch(err) {
+    return `<!-- ${name} is not exist -->`;
+  }
+}
+
+/**
+ * 扩展 PHP 语法
+ * @method RM_SCHEME {url} 移除协议头
+ * return url
+ */
+// eslint-disable-next-line no-unused-vars
+function RM_SCHEME(domain){
+  return domain.replace('http://', '//');
+}
+
+function getPackage() {
+  const pkg = getFile(packageSrc);
+  pkg.application = pkg.application || {};
+  pkg.application.html = pkg.application.html || {};
+  pkg.debug = pkg.application.html.debug || pkg.application.debug || false;
+  return pkg;
+}

@@ -11,6 +11,20 @@ npm i -g https://github.com/BozhongFE/bz-cli
 bz <command> [options]
 ```
 
+
+## config
+
+配置命令行工具
+
+### command
+
+```bash
+bz config set <key> <value>
+bz config delete <key>
+bz config list [--json]
+```
+
+
 ## less
 
 根据当前项目下的 package.json.application.less[] 配置编译 `less`
@@ -170,15 +184,17 @@ ps: `application.debug` < `application.js[].debug`
 
 默认自带有顶部注释内容，其中有个 `for` 属性说明，可在这里配置，用于说明合并后文件的作用
 
+## html
 
-## config
-
-配置命令行工具
-
-### command
+把当前项目下的 _*.html 文件编译成 *.html
+ps：构建全部 _*.html 时，只构建一天之内修改过的文件
 
 ```bash
-bz config set <key> <value>
-bz config delete <key>
-bz config list [--json]
+bz html [options]
 ```
+
+### [options]
+
++ -w, --watch
+
+监听文件变化，内部监听 `./**/_*.html`、`./package.html`
