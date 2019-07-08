@@ -59,8 +59,9 @@ function start() {
       debounce(() => {
         if (vinyl.path.match(/.html$/)) {
           info(`[${getTime()}]`, 'html 编译开始');
-          buildOne(vinyl.path);
-          info(`[${getTime()}]`, 'html 编译结束');
+          buildOne(vinyl.path, () => {
+            info(`[${getTime()}]`, 'html 编译结束');
+          });
         } else if (vinyl.path.match(/package\.json$/)) {
           buildAll();
         }
@@ -81,11 +82,13 @@ function buildAll() {
       return item;
     }
   });
-  files.forEach((item) => buildOne(item.path));
-  info(`[${getTime()}]`, 'html 编译结束');
+  const filesPromise = files.map((item) => new Promise((resolve) => buildOne(item.path, resolve)));
+  Promise.all(filesPromise).then(() => {
+    info(`[${getTime()}]`, 'html 编译结束');
+  });
 }
 
-function buildOne(file) {
+function buildOne(file, callback) {
   let html = readFileSync(file, 'utf8');
   // 需要编译的php
   const phpCode = getPHP(html);
@@ -119,6 +122,7 @@ function buildOne(file) {
       debug(pkg.debug, '源文件', file);
       debug(pkg.debug, '目标文件', newfile);
     }
+    callback && callback();
   });
 }
 
