@@ -52,3 +52,7 @@
 ## 1.0.0-alpha.10
 
 - [new] [html] 新增 htmlblock 支持
+
+## 1.0.0-alpha.11
+
+- [fix] [html] htmlblock 兼容多参数

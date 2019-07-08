@@ -95,16 +95,15 @@ function buildOne(file, callback) {
   // 提取php语法
   const phpEvent = getEvent(phpCode);
   // 编译php
-  const eventPormise = phpEvent.map((item, i) => new Promise((resolve) => {
-    const eventName = phpEvent[i].match(/^([^(]+)\(['"]([^'"]+)['"]\)/);
-    const hasB2 = eventName && eventName[1] === 'B2';
+  const eventPormise = phpEvent.map((item) => new Promise((resolve) => {
     try {
       // 是否读取 block
-      if (hasB2) {
-        B2(eventName[2], resolve);
+      if (item.match(/B2\(/)) {
+        const params = eval(item);
+        B2Handler(...params, resolve);
       } else {
         // 其他方法
-        resolve(eval(phpEvent[i]));
+        resolve(eval(item));
       }
     } catch(err){
       // 异常处理
@@ -159,11 +158,18 @@ function getEvent(php){
  * @method B2 {string} cmskey 获取 htmlblock 内容（异步获取，需采用主动调用）
  */
 // eslint-disable-next-line no-unused-vars
-function B2(key, callback){
+function B2(...args) {
+  return args;
+}
+function B2Handler(key, type, callback){
   // read from cache
   if (blocks[key]) return callback(blocks[key]);
   // read from remote
-  request.get(`${cliConfig.htmlblock.url}${key}`, (err, data) => {
+  let url = `${cliConfig.htmlblock.url}${key}`;
+  // 兼容 url
+  if (type === 1) url = url.replace('type=2', 'type=1');
+  else if (type === 2) url = url.replace('type=1', 'type=2');
+  request.get(url, (err, data) => {
     if (err) callback(`[${err}]`);
     else callback(data.text);
   });
