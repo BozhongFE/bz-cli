@@ -48,3 +48,7 @@
 ## 1.0.0-alpha.9
 
 - [new] [html] 新增 `bz html` 命令，用于构建html
+
+## 1.0.0-alpha.10
+
+- [new] [html] 新增 htmlblock 支持

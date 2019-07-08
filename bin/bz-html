@@ -7,6 +7,7 @@ const { resolve } = require('path');
 const program = require('commander');
 // gulp module
 const watch = require('gulp-watch');
+const request = require('superagent');
 // base module
 const { getPackageSrc, cwd, debounce } = require('../libs/utils');
 const { debug, info, error } = require('../libs/log');
@@ -20,14 +21,16 @@ program
   .option('-w, --watch', 'listen for file changes')
   .parse(process.argv);
 
+// global variable
+const blocks = {};
 const packageSrc = getPackageSrc();
-
-
+let pkg = getPackage();
+let cliConfig;
 
 start();
 buildAll();
 function start() {
-  const pkg = getPackage();
+  pkg = getPackage();
   const isDebug = pkg.debug;
 
   const configFile = bzConf.get('config');
@@ -39,10 +42,10 @@ function start() {
   debug(isDebug, '当前配置', configFile);
   
   // 获取 config
-  const config = getFile(configFile);
+  cliConfig = getFile(configFile);
   // 注入全局变量（例如：域名）
-  if (config.global) {
-    Object.assign(global, config.global);
+  if (cliConfig.global) {
+    Object.assign(global, cliConfig.global);
     debug(isDebug, '全局变量注入成功');
   }
 
@@ -89,20 +92,34 @@ function buildOne(file) {
   // 提取php语法
   const phpEvent = getEvent(phpCode);
   // 编译php
-  for (let i = 0; i < phpEvent.length; i += 1) {
+  const eventPormise = phpEvent.map((item, i) => new Promise((resolve) => {
+    const eventName = phpEvent[i].match(/^([^(]+)\(['"]([^'"]+)['"]\)/);
+    const hasB2 = eventName && eventName[1] === 'B2';
     try {
-      html = html.replace(phpCode[i], eval(phpEvent[i]) );
+      // 是否读取 block
+      if (hasB2) {
+        B2(eventName[2], resolve);
+      } else {
+        // 其他方法
+        resolve(eval(phpEvent[i]));
+      }
     } catch(err){
-      html = html.replace(phpCode[i], `[${err}]`);
+      // 异常处理
+      resolve(`[${err}]`);
     }
-  }
-  const newfile = file.replace(/_.*\.html$/, (filename) => filename.replace('_', ''));
-  writeFileSync(newfile, html, 'utf8');
-  const pkg = getPackage();
-  if (pkg.debug) {
-    debug(pkg.debug, '源文件', file);
-    debug(pkg.debug, '目标文件', newfile);
-  }
+  }));
+  Promise.all(eventPormise).then((results) => {
+    for (let i = 0; i < phpEvent.length; i += 1) {
+      html = html.replace(phpCode[i], results[i]);
+    }
+    const newfile = file.replace(/_.*\.html$/, (filename) => filename.replace('_', ''));
+    writeFileSync(newfile, html, 'utf8');
+    pkg = getPackage();
+    if (pkg.debug) {
+      debug(pkg.debug, '源文件', file);
+      debug(pkg.debug, '目标文件', newfile);
+    }
+  });
 }
 
 function getTime() {
@@ -116,14 +133,14 @@ function getTime() {
 
 /**
  * 通过 html 获取 php 语法
- * return [function|var]
+ * @return {string} 语法格式
  */
 function getPHP(contents){
   return contents.match(/<\?[=||php][^<?||?>]*\?>/g) ? contents.match(/<\?[=||php][^<?||?>]*\?>/g) : [];
 }
 /**
  * 通过 php 语法获取对应的变量或函数
- * return [function|var]
+ * @return {string} 变量、函数格式
  */
 function getEvent(php){
   var arr = [];
@@ -135,23 +152,23 @@ function getEvent(php){
 
 /**
  * 扩展 PHP 语法
- * @method B {block_name} 获取旧版 block 内容
- * return 
+ * @method B2 {string} cmskey 获取 htmlblock 内容（异步获取，需采用主动调用）
  */
 // eslint-disable-next-line no-unused-vars
-function B(name){
-  try {
-    return 'asdasf';
-  // eslint-disable-next-line no-unreachable
-  } catch(err) {
-    return `<!-- ${name} is not exist -->`;
-  }
+function B2(key, callback){
+  // read from cache
+  if (blocks[key]) return callback(blocks[key]);
+  // read from remote
+  request.get(`${cliConfig.htmlblock.url}${key}`, (err, data) => {
+    if (err) callback(`[${err}]`);
+    else callback(data.text);
+  });
 }
 
 /**
  * 扩展 PHP 语法
  * @method RM_SCHEME {url} 移除协议头
- * return url
+ * @return {string} url
  */
 // eslint-disable-next-line no-unused-vars
 function RM_SCHEME(domain){
@@ -159,9 +176,9 @@ function RM_SCHEME(domain){
 }
 
 function getPackage() {
-  const pkg = getFile(packageSrc);
-  pkg.application = pkg.application || {};
-  pkg.application.html = pkg.application.html || {};
-  pkg.debug = pkg.application.html.debug || pkg.application.debug || false;
-  return pkg;
+  const xpkg = getFile(packageSrc);
+  xpkg.application = xpkg.application || {};
+  xpkg.application.html = xpkg.application.html || {};
+  xpkg.debug = xpkg.application.html.debug || xpkg.application.debug || false;
+  return xpkg;
 }

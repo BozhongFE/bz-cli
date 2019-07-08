@@ -24,6 +24,22 @@ bz config delete <key>
 bz config list [--json]
 ```
 
+### cli config
+
+```bash
+bz config set config /xxx/xxx.json
+```
+
+```json
+{
+  "global": {
+    "XXX_XXX_COM": "http://xxx.xxx.com",
+  },
+  "htmlblock": {
+    "url": "cms => htmlblock => publish url"
+  }
+}
+```
 
 ## less
 
