@@ -33,7 +33,7 @@ function build() {
   info(`[${getTime()}]`, 'js 合并压缩开始');
   // application variable
   const packageSrc = getPackageSrc();
-  const pkg = getFile(packageSrc);
+  const pkg = getFile(packageSrc, true);
   const app = pkg.application || {};
   app.debug = app.debug || false;
   let appJS = app.js || [];
@@ -58,7 +58,7 @@ function build() {
       }
       // from's file is javascript?
       if (!/\.js$/.test(item.from[i])) {
-        error(`application.js[${index}].from[${i}]: ${item.from[i]} Not A Less File`);
+        error(`application.js[${index}].from[${i}]: ${item.from[i]} Not A JS File`);
         return false;
       }
     }

@@ -83,7 +83,7 @@ function build() {
       .pipe(gulpif(item.cssmin, cleanCSS(item.cleanCSS)))
       .pipe(header(item.header, {
         pkg,
-        less: item,
+        item,
       }))
       .pipe(gulp.dest(item.dirs));
   });

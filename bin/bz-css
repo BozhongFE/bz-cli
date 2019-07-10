@@ -1,0 +1,178 @@
+#!/usr/bin/env node
+
+// nodejs module
+const { readdirSync, statSync } = require('fs');
+const { resolve } = require('path');
+// commander
+const program = require('commander');
+const _ = require('lodash');
+// gulp module
+const gulp = require('gulp');
+const watch = require('gulp-watch');
+const gulpif = require('gulp-if');
+const header = require('gulp-header');
+const concat = require('gulp-concat');
+const cleanCSS = require('gulp-clean-css');
+const autoprefixer = require('gulp-autoprefixer');
+const base64 = require('gulp-base64');
+// base module
+const { getPackageSrc, exists, cwd, debounce } = require('../libs/utils');
+const { debug, info, error } = require('../libs/log');
+const { getFile } = require('../libs/fs');
+// global variable
+const beBuildedFiles = {};
+
+// define command
+program
+  .usage('[options]')
+  .option('-w, --watch', 'listen for file changes')
+  .parse(process.argv);
+
+// application watch
+if (program.watch) {
+  watch([
+    cwd + '/**/*.css',
+    getPackageSrc(),
+  ], {}, (vinyl) => {
+    debounce(() => {
+      if (vinyl.path.match(/.css$/)) {
+        if (!beBuildedFiles[vinyl.path]) {
+          buildBefore(() => {
+            info(`[${getTime()}]`, 'css 合并开始');
+            const appCSS = pkg.application.css.filter((item) => item.from.indexOf(vinyl.path) >= 0);
+            build(appCSS);
+            info(`[${getTime()}]`, 'css 合并结束');
+          });
+        }
+      } else if (vinyl.path.match(/package\.json$/)) {
+        buildBefore(buildAll);
+      }
+    });
+  });
+}
+
+// global variable
+const packageSrc = getPackageSrc();
+let pkg = getPackage();
+buildBefore(buildAll);
+
+function buildAll() {
+  info(`[${getTime()}]`, 'css 合并开始');
+  const dirs = readdirSync(resolve(cwd, 'css'));
+  let files = [];
+  files = dirs.filter((item) => item.match(/^.*\.css$/)).map((item) => ({
+    path: resolve(cwd, 'css', item),
+    mtime: statSync(resolve(cwd, 'css', item)).mtime,
+  })).filter((item) => {
+    if (item.mtime > new Date() - 24 * 3600000) {
+      return item;
+    }
+  }).map((item) => item.path);
+  const appCSS = pkg.application.css.filter((item) => {
+    for (const cssFile of item.from) {
+      if (files.indexOf(cssFile) >= 0) return true;
+    }
+    return false;
+  });
+  build(appCSS);
+  info(`[${getTime()}]`, 'css 合并结束');
+}
+
+function buildBefore(callback) {
+  pkg = getPackage();
+  let appCSS = pkg.application.css;
+  if (appCSS.length === 0) {
+    error('package.json.application.css 不能为空');
+    return false;
+  }
+
+  pkg.application.css = appCSS.filter((item, index) => {
+    item.__index__ = index;
+    // from is array?
+    if (!_.isArray(item.from) || item.from.length === 0) {
+      error(`application.css[${index}].from: Not Array Or Null`);
+      return false;
+    }
+    const fromLength = item.from.length;
+    for (let i = 0; i < fromLength; i += 1) {
+      // from's file exists?
+      if (!exists(item.from[i])) {
+        error(`application.css[${index}].from[${i}]: ${item.from[i]} Not Found`);
+        return false;
+      }
+      // from's file is css?
+      if (!/\.css$/.test(item.from[i])) {
+        error(`application.css[${index}].from[${i}]: ${item.from[i]} Not A CSS File`);
+        return false;
+      }
+    }
+
+    // to's file is css?
+    if (!item.to || !/\.css$/.test(item.to)) {
+      error(`application.css[${index}].to: ${item.to} Not A CSS File`);
+      return false;
+    }
+    
+    return true;
+  }).map((item) => initAppCSS(item, pkg.debug));
+  callback && callback();
+}
+
+function build(appCSS) {
+  // application variable
+  appCSS.map((item) => {
+    const index = item.__index__;
+    debug(item.debug, `源文件[${index}]:`, item.from.join('\r\n        　　　   　'));
+    debug(item.debug, `目标文件[${index}]:`, item.to, item.cssmin ? '(cssmin)' : '');
+    beBuildedFiles[item.to] = true;
+    gulp.src(item.from)
+      .pipe(base64(item.base64))
+      .pipe(autoprefixer())
+      .pipe(gulpif(item.cssmin, cleanCSS(item.cleanCSS)))
+      .pipe(concat(item.name, Object.assign({
+        newLine: '\r\n',
+      }, item.concat)))
+      .pipe(header(item.comment + item.header, {
+        pkg,
+        item,
+      }))
+      .pipe(gulp.dest(item.dirs));
+  });
+}
+
+// init application.css config
+function initAppCSS(conf, isDebug) {
+  conf =  Object.assign({
+    debug: isDebug,
+    comment: `/**
+ * Date: ${new Date().toLocaleString()}
+ * Include: ${conf.from}
+ * For: ${conf.for || 'Not configured'}
+ */
+`,
+    header: '',
+    cssmin: false,
+  }, conf);
+
+  conf.from = conf.from.map((item) => resolve(cwd, item));
+  conf.to = resolve(cwd, conf.to);
+  conf.name = conf.to.match(/[^/]+\.css$/i)[0];
+  conf.dirs = conf.to.replace(/\/[^/]+\.css$/i, '');
+  return conf;
+}
+
+function getPackage() {
+  const xpkg = getFile(packageSrc, true);
+  xpkg.application = xpkg.application || {};
+  xpkg.application.css = xpkg.application.css || [];
+  xpkg.debug = xpkg.application.debug || false;
+  return xpkg;
+}
+function getTime() {
+  const date = new Date();
+  const format = num => num < 10 ? `0${num}` : num;
+  const hour = format(date.getHours());
+  const minute = format(date.getMinutes());
+  const second = format(date.getSeconds());
+  return `${hour}:${minute}:${second}`;
+}

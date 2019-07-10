@@ -56,3 +56,7 @@
 ## 1.0.0-alpha.11
 
 - [fix] [html] htmlblock 兼容多参数
+
+## 1.0.0-alpha.12
+
+- [new] [css] 新增 `bz css` 命令，用于合并压缩 css

@@ -6,6 +6,7 @@ const pkg = require('../package.json');
 program
   .version(pkg.version, '-v, --version')
   .usage('<command> [options]')
+  .command('css', 'merge css')
   .command('less', 'less command')
   .command('js', 'merge and compression javscript')
   .command('config', 'config .bzrc')
