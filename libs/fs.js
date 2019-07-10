@@ -44,7 +44,7 @@ const cfs = module.exports = {
       try {
         data = JSON.parse(data);
       } catch(err) {
-        error('libs/fs readFile JSON.parse error');
+        error(file, 'libs/fs readFile JSON.parse error');
         // eslint-disable-next-line no-console
         console.error(err);
         data = {};

@@ -1,22 +1,27 @@
 #!/usr/bin/env node
 
 // nodejs module
+const { statSync } = require('fs');
 const { resolve } = require('path');
 // commander
 const program = require('commander');
+const _ = require('lodash');
 // gulp module
 const gulp = require('gulp');
+const watch = require('gulp-watch');
 const gulpif = require('gulp-if');
 const header = require('gulp-header');
-const uglify = require('gulp-uglify');
-const watch = require('gulp-watch');
 const concat = require('gulp-concat');
+const uglify = require('gulp-uglify');
+
 // base module
-const _ = require('lodash');
-const { getPackageSrc, exists, cwd } = require('../libs/utils');
+const { getPackageSrc, exists, cwd, debounce } = require('../libs/utils');
 const { debug, info, error } = require('../libs/log');
 const { getFile } = require('../libs/fs');
-
+// global variable
+const packageSrc = getPackageSrc();
+let pkg = getPackage();
+const ignoreFiles = {};
 
 // define command
 program
@@ -24,25 +29,52 @@ program
   .option('-w, --watch', 'listen for file changes')
   .parse(process.argv);
 
-// -w, --watch
-let isWatch = false;
+// application watch
+if (program.watch) {
+  watch([
+    cwd + '/**/*.js',
+    getPackageSrc(),
+  ], {}, (vinyl) => {
+    debounce(() => {
+      if (vinyl.path.match(/.js$/)) {
+        if (!ignoreFiles[vinyl.path]) {
+          buildBefore(() => {
+            info(`[${getTime()}]`, 'js 合并压缩开始');
+            const appJS = pkg.application.js.filter((item) => item.from.indexOf(vinyl.path) >= 0);
+            build(appJS);
+            info(`[${getTime()}]`, 'js 合并压缩结束');
+          });
+        }
+      } else if (vinyl.path.match(/package\.json$/)) {
+        buildBefore(buildAll);
+      }
+    });
+  });
+}
 
-build();
+buildBefore(buildAll);
 
-function build() {
+function buildAll() {
   info(`[${getTime()}]`, 'js 合并压缩开始');
-  // application variable
-  const packageSrc = getPackageSrc();
-  const pkg = getFile(packageSrc, true);
-  const app = pkg.application || {};
-  app.debug = app.debug || false;
-  let appJS = app.js || [];
-  if (!appJS || appJS.length === 0) {
+  const appJS = pkg.application.js.filter((item) => {
+    for (const jsFile of item.from) {
+      if (statSync(jsFile).mtime > new Date() - 24 * 3600000) {
+        return item;
+      }
+    }
+  });
+  build(appJS);
+  info(`[${getTime()}]`, 'js 合并压缩结束');
+}
+
+function buildBefore(callback) {
+  pkg = getPackage();
+  if (!pkg.application || !pkg.application.js || pkg.application.js.length === 0) {
     error('package.json.application.js 不能为空');
     return false;
   }
 
-  appJS = appJS.filter((item, index) => {
+  pkg.application.js = pkg.application.js.filter((item, index) => {
     item.__index__ = index;
     // from is array?
     if (!_.isArray(item.from) || item.from.length === 0) {
@@ -56,37 +88,32 @@ function build() {
         error(`application.js[${index}].from[${i}]: ${item.from[i]} Not Found`);
         return false;
       }
-      // from's file is javascript?
+      // from's file is js?
       if (!/\.js$/.test(item.from[i])) {
         error(`application.js[${index}].from[${i}]: ${item.from[i]} Not A JS File`);
         return false;
       }
     }
 
-    // to's file is jsvascript?
+    // to's file is js?
     if (!item.to || !/\.js$/.test(item.to)) {
       error(`application.js[${index}].to: ${item.to} Not A JS File`);
       return false;
     }
+    
     return true;
-  }).map((item) => {
-    return initAppJS(item, app.debug);
-  });
+  }).map((item) => initAppJS(item, pkg.debug));
+  callback && callback();
+}
 
-  // -w, --watch
-  if (program.watch && !isWatch) {
-    isWatch = true;
-    const froms = appJS.reduce((total, item) => total.concat(item.from), []);
-    watch([
-      ...froms,
-      getPackageSrc(),
-    ], {}, build);
-  }
-
+function build(appJS) {
+  // application variable
   appJS.map((item) => {
     const index = item.__index__;
     debug(item.debug, `源文件[${index}]:`, item.from.join('\r\n        　　　   　'));
-    debug(item.debug, `目标文件[${index}]:`, item.to);
+    debug(item.debug, `目标文件[${index}]:`, item.to, item.jsmin ? '(jsmin)' : '');
+    ignoreFiles[item.to] = true;
+
     gulp.src(item.from)
       .pipe(gulpif(item.jsmin, uglify(item.uglifyjs)))
       .pipe(concat(item.name, Object.assign({
@@ -98,10 +125,10 @@ function build() {
       }))
       .pipe(gulp.dest(item.dirs));
   });
-  info(`[${getTime()}]`, 'js 合并压缩结束');
 }
 
-function initAppJS(conf, isDebug = true) {
+// init application.js config
+function initAppJS(conf, isDebug) {
   conf =  Object.assign({
     debug: isDebug,
     comment: `/**
@@ -111,6 +138,7 @@ function initAppJS(conf, isDebug = true) {
  */
 `,
     header: '',
+    jsmin: false,
   }, conf);
 
   conf.from = conf.from.map((item) => resolve(cwd, item));
@@ -120,6 +148,13 @@ function initAppJS(conf, isDebug = true) {
   return conf;
 }
 
+function getPackage() {
+  const xpkg = getFile(packageSrc, true);
+  xpkg.application = xpkg.application || {};
+  xpkg.application.js = xpkg.application.js || [];
+  xpkg.debug = xpkg.application.debug || false;
+  return xpkg;
+}
 function getTime() {
   const date = new Date();
   const format = num => num < 10 ? `0${num}` : num;

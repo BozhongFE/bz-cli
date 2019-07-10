@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 
 // nodejs module
+const { statSync } = require('fs');
 const { resolve } = require('path');
 // commander
 const program = require('commander');
@@ -8,16 +9,19 @@ const program = require('commander');
 const gulp = require('gulp');
 const watch = require('gulp-watch');
 const gulpif = require('gulp-if');
-const rename = require('gulp-rename');
 const header = require('gulp-header');
 const less = require('gulp-less');
+const rename = require('gulp-rename');
 const cleanCSS = require('gulp-clean-css');
 const autoprefixer = require('gulp-autoprefixer');
 const base64 = require('gulp-base64');
 // base module
-const { getPackageSrc, exists, cwd } = require('../libs/utils');
+const { getPackageSrc, exists, cwd, debounce } = require('../libs/utils');
 const { debug, info, error } = require('../libs/log');
 const { getFile } = require('../libs/fs');
+// global variable
+const packageSrc = getPackageSrc();
+let pkg = getPackage();
 
 // define command
 program
@@ -30,51 +34,76 @@ if (program.watch) {
   watch([
     cwd + '/**/*.less',
     getPackageSrc(),
-  ], {}, build);
+  ], {}, (vinyl) => {
+    debounce(() => {
+      if (vinyl.path.match(/.less$/)) {
+        buildBefore(() => {
+          info(`[${getTime()}]`, 'less 编译开始');
+          const appLess = pkg.application.less.filter((item) => item.from === vinyl.path);
+          build(appLess);
+          info(`[${getTime()}]`, 'less 编译结束');
+        });
+      } else if (vinyl.path.match(/package\.json$/)) {
+        buildBefore(buildAll);
+      }
+    });
+  });
 }
 
-build();
+buildBefore(buildAll);
 
-// build
-function build() {
+function buildAll() {
   info(`[${getTime()}]`, 'less 编译开始');
-  // application variable
-  const packageSrc = getPackageSrc();
-  const pkg = getFile(packageSrc);
-  const app = pkg.application || {};
-  app.debug = app.debug || false;
-  let appLess = app.less || [initAppLess(undefined, app.debug)];
+  const appLess = pkg.application.less.map((item) => {
+    item.mtime = statSync(item.from).mtime;
+    return item;
+  }).filter((item) => {
+    if (item.mtime > new Date() - 24 * 3600000) {
+      return item;
+    }
+  });
+  build(appLess);
+  info(`[${getTime()}]`, 'less 编译结束');
+}
 
-  // application config
-  appLess = appLess.filter((item, index) => {
+function buildBefore(callback) {
+  pkg = getPackage();
+  let appLess = pkg.application.less;
+  if (appLess.length === 0) {
+    error('package.json.application.less 不能为空');
+    return false;
+  }
+
+  pkg.application.less = appLess.filter((item, index) => {
     item.__index__ = index;
     // from's file exists?
     if (!exists(item.from)) {
-      error(`less源文件[${index}]: ${item.from} Not Found`);
+      error(`application.less[${index}].from: Not Found`);
       return false;
     }
     // from's file is less?
     if (!/\.less$/.test(item.from)) {
-      error(`less源文件[${index}]: ${item.from} Not A Less File`);
+      error(`application.less[${index}].from: ${item.from} Not A Less File`);
       return false;
     }
-    // to's file is css?
-    if (item.to && !/\.css$/.test(item.to)) {
-      error(`less目标文件[${index}]: ${item.to} Not A CSS File`);
-      return false;
-    }
-    return true;
-  }).map(initAppLess);
 
+    // to's file is css?
+    if (!item.to || !/\.css$/.test(item.to)) {
+      error(`application.less[${index}].to: ${item.to} Not A CSS File`);
+      return false;
+    }
+    
+    return true;
+  }).map((item) => initAppLess(item, pkg.debug));
+  callback && callback();
+}
+
+function build(appLess) {
+  // application variable
   appLess.map((item) => {
     const index = item.__index__;
-    if (!exists(item.from)) {
-      error(`less源文件[${index}]:`, resolve(cwd, item.from), 'Not Found');
-      return false;
-    }
     debug(item.debug, `源文件[${index}]:`, item.from);
     debug(item.debug, `目标文件[${index}]:`, item.to, item.cssmin ? '(cssmin)' : '');
-  
     gulp.src(item.from)
       .pipe(less(item.options))
       .pipe(base64(item.base64))
@@ -87,24 +116,29 @@ function build() {
       }))
       .pipe(gulp.dest(item.dirs));
   });
-  info(`[${getTime()}]`, 'less 编译结束');
 }
 
-// init application.less config
-function initAppLess(conf, isDebug = true) {
+// init application.css config
+function initAppLess(conf, isDebug) {
   conf =  Object.assign({
-    from: resolve(cwd, 'css/style.less'),
     debug: isDebug,
-    cssmin: false
+    cssmin: false,
   }, conf);
 
   conf.from = resolve(cwd, conf.from);
-  conf.to = conf.to ? resolve(cwd, conf.to) : resolve(cwd, conf.from.replace(/less$/i, 'css'));
+  conf.to = resolve(cwd, conf.to);
   conf.name = conf.to.match(/[^/]+\.css$/i)[0];
   conf.dirs = conf.to.replace(/\/[^/]+\.css$/i, '');
   return conf;
 }
 
+function getPackage() {
+  const xpkg = getFile(packageSrc, true);
+  xpkg.application = xpkg.application || {};
+  xpkg.application.less = xpkg.application.less || [];
+  xpkg.debug = xpkg.application.debug || false;
+  return xpkg;
+}
 function getTime() {
   const date = new Date();
   const format = num => num < 10 ? `0${num}` : num;

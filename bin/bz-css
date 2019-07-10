@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
 // nodejs module
-const { readdirSync, statSync } = require('fs');
+const { statSync } = require('fs');
 const { resolve } = require('path');
 // commander
 const program = require('commander');
@@ -20,6 +20,8 @@ const { getPackageSrc, exists, cwd, debounce } = require('../libs/utils');
 const { debug, info, error } = require('../libs/log');
 const { getFile } = require('../libs/fs');
 // global variable
+const packageSrc = getPackageSrc();
+let pkg = getPackage();
 const beBuildedFiles = {};
 
 // define command
@@ -51,26 +53,15 @@ if (program.watch) {
   });
 }
 
-// global variable
-const packageSrc = getPackageSrc();
-let pkg = getPackage();
 buildBefore(buildAll);
 
 function buildAll() {
   info(`[${getTime()}]`, 'css 合并开始');
-  const dirs = readdirSync(resolve(cwd, 'css'));
-  let files = [];
-  files = dirs.filter((item) => item.match(/^.*\.css$/)).map((item) => ({
-    path: resolve(cwd, 'css', item),
-    mtime: statSync(resolve(cwd, 'css', item)).mtime,
-  })).filter((item) => {
-    if (item.mtime > new Date() - 24 * 3600000) {
-      return item;
-    }
-  }).map((item) => item.path);
   const appCSS = pkg.application.css.filter((item) => {
     for (const cssFile of item.from) {
-      if (files.indexOf(cssFile) >= 0) return true;
+      if (statSync(cssFile).mtime > new Date() - 24 * 3600000) {
+        return true;
+      }
     }
     return false;
   });

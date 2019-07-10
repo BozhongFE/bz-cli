@@ -60,3 +60,7 @@
 ## 1.0.0-alpha.12
 
 - [new] [css] 新增 `bz css` 命令，用于合并压缩 css
+
+## 1.0.0-alpha.13
+
+- [optimize] [command] 优化 css、js、less
