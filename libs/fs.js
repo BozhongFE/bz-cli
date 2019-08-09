@@ -1,7 +1,11 @@
 /**
  * 读取文件
  */
-const { existsSync, readFileSync } = require('fs');
+const { existsSync, readFileSync, writeFileSync, ensureDirSync } = require('fs-extra');
+const path = require('path');
+const globby = require('globby')
+const { isBinaryFileSync } = require('isbinaryfile')
+const normalizeFilePaths = require('./normalizeFilePaths')
 const { error } = require('./log');
 
 const cache = new Map();
@@ -62,4 +66,45 @@ const cfs = module.exports = {
     if (type && type.length >= 2) return type[1];
     return void 0;
   },
+  async readFiles(context) {
+    const files = await globby(['**'], {
+      cwd: context,
+      onlyFiles: true,
+      gitignore: true,
+      ignore: ['**/node_modules/**', '**/.git/**'],
+      dot: true
+    })
+    const res = {}
+    for (const file of files) {
+      const name = path.resolve(context, file)
+      res[file] = isBinaryFileSync(name)
+        ? readFileSync(name)
+        : readFileSync(name, 'utf-8')
+    }
+    return normalizeFilePaths(res)
+  },
+  async writeFileTree (dir, files, previousFiles) {
+    if (process.env.VUE_CLI_SKIP_WRITE) {
+      return
+    }
+    if (previousFiles) {
+      await deleteRemovedFiles(dir, files, previousFiles)
+    }
+    Object.keys(files).forEach((name) => {
+      const filePath = path.join(dir, name);
+      ensureDirSync(path.dirname(filePath));
+      writeFileSync(filePath, files[name]);
+    })
+  }
 };
+
+function deleteRemovedFiles (directory, newFiles, previousFiles) {
+  // get all files that are not in the new filesystem and are still existing
+  const filesToDelete = Object.keys(previousFiles)
+    .filter(filename => !newFiles[filename])
+
+  // delete each of these files
+  return Promise.all(filesToDelete.map(filename => {
+    return fs.unlink(path.join(directory, filename))
+  }))
+}
