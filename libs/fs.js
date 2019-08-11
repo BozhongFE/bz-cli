@@ -1,7 +1,8 @@
 /**
  * 读取文件
  */
-const { existsSync, readFileSync, writeFileSync, ensureDirSync } = require('fs-extra');
+const { existsSync, readFileSync, writeFileSync, ensureDirSync, statSync } = require('fs-extra');
+const fs = require('fs-extra');
 const path = require('path');
 const globby = require('globby')
 const { isBinaryFileSync } = require('isbinaryfile')
@@ -66,26 +67,33 @@ const cfs = module.exports = {
     if (type && type.length >= 2) return type[1];
     return void 0;
   },
-  async readFiles(context) {
+  async readFiles(context, options = {
+    hasContent: true,
+    ignore: [],
+  }) {
     const files = await globby(['**'], {
       cwd: context,
       onlyFiles: true,
       gitignore: true,
-      ignore: ['**/node_modules/**', '**/.git/**'],
+      ignore: ['**/node_modules/**', '**/.git/**', '**/.DS_Store/**'].concat(options.ignore || []),
       dot: true
-    })
-    const res = {}
+    });
+    const res = {};
     for (const file of files) {
-      const name = path.resolve(context, file)
-      res[file] = isBinaryFileSync(name)
-        ? readFileSync(name)
-        : readFileSync(name, 'utf-8')
+      const name = path.resolve(context, file);
+      if (!options.hasContent) {
+        res[file] = '';
+      } else {
+        res[file] = isBinaryFileSync(name)
+          ? fs.createReadStream(name)
+          : readFileSync(name, 'utf-8');
+      }
     }
-    return normalizeFilePaths(res)
+    return normalizeFilePaths(res);
   },
   async writeFileTree (dir, files, previousFiles) {
     if (process.env.VUE_CLI_SKIP_WRITE) {
-      return
+      return false;
     }
     if (previousFiles) {
       await deleteRemovedFiles(dir, files, previousFiles)
@@ -93,8 +101,24 @@ const cfs = module.exports = {
     Object.keys(files).forEach((name) => {
       const filePath = path.join(dir, name);
       ensureDirSync(path.dirname(filePath));
-      writeFileSync(filePath, files[name]);
-    })
+      if (files[name].pipe) {
+        const writeStream = fs.createWriteStream(filePath);
+        files[name].pipe(writeStream);
+      } else {
+        writeFileSync(filePath, files[name]);
+      }
+      if (name === 'src/assets/img/logo.png') {
+        // console.log(files[name]);
+      }
+      // if (name === 'src/assets/img/logo.png') {
+      //   // const readStream = fs.createReadStream(name);
+      //   // const writeStream = fs.createWriteStream(filePath);
+      //   // files[name].pipe(writeStream);
+      //   writeFileSync(filePath, files[name]);
+      // } else {
+      //   writeFileSync(filePath, files[name]);
+      // }
+    });
   }
 };
 

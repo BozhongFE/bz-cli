@@ -1,19 +1,17 @@
 #!/usr/bin/env node
 
 // nodejs module
-const { statSync, existsSync } = require('fs');
+const fs = require('fs-extra');
 const { resolve } = require('path');
+const globby = require('globby');
+const { isBinaryFileSync } = require('isbinaryfile');
 // commander
 const program = require('commander');
 const inquirer = require('inquirer');
 const ora = require('ora');
 const git = require('download-git-repo');
 const chalk = require('chalk');
-const metalsmith = require('metalsmith');
-const metadata = require('metalsmith-metadata');
-const layouts = require('metalsmith-layouts');
 const _ = require('lodash');
-const transformLodash = require('jstransformer')(require('jstransformer-lodash'));
 
 // gulp module
 const gulp = require('gulp');
@@ -26,7 +24,7 @@ const cleanCSS = require('gulp-clean-css');
 const autoprefixer = require('gulp-autoprefixer');
 const base64 = require('gulp-base64');
 // base module
-const { getPackageSrc, exists, cwd, debounce } = require('../libs/utils');
+const { getPackageSrc, exists, cwd, debounce, filters, removes } = require('../libs/utils');
 const { debug, info, error } = require('../libs/log');
 const { getFile, readFiles, writeFileTree } = require('../libs/fs');
 // global variable
@@ -63,7 +61,7 @@ function run() {
   const uid = Math.random().toString(35).substr(2, 10);
   const tmpPath = `/tmp/dme-${uid}`;
   // is local
-  if (existsSync(templatePath)) {
+  if (fs.existsSync(templatePath)) {
     generate(templatePath, process.cwd(), function (err) {
       if (err) console.error(err)
       console.log('bz vue upgrade success')
@@ -95,44 +93,29 @@ function run() {
 
 async function generate(tmp, dest, done) {
   const preset = getFile(resolve(tmp, 'preset.json'), true);
-  console.log(tmp, dest);
-  const root = resolve(tmp, 'template/src/router');
-  const files = await readFiles(root);
-  for (const key in files) {
+  const bzPreset = getFile(resolve(tmp, 'bz.preset.json'), true);
+  // copy tmp files to dest
+  const files = await readFiles(resolve(tmp, 'template'));
+  for (const file in files) {
+    const name = resolve(resolve(tmp, 'template'), file);
+    if (isBinaryFileSync(name)) {
+      console.log(files[file]);
+    }
+  }
+  // console.log(Object.keys(files));
+  filters(files, bzPreset.template.filters, preset);
+  const fileNames = Object.keys(files);
+  fileNames.forEach((key) => {
     files[key] = _.template(files[key])(preset);
-  }
-  await writeFileTree(resolve(dest, 'src/router'), files);
-  // console.log(preset);
-  // const arr = [new Promise((resolve, reject) => {
-  //   metalsmith(tmp)
-  //     // .use(metadata(preset))
-  //     .use(update1())
-  //     // .use(update())
-  //     .source('./template/src/router')
-  //     .destination(resolve(dest, 'src/router'))
-  //     .build(done);
-  // })];
-  // Promise.all(arr).then(done);
-}
-
-function update1() {
-  console.log(3331);
-  return function (files, metalsmith, done) {
-    console.log(3132312);
-    var metaJson = metalsmith.metadata()
-    console.log(333, files, metaJson);
-    done(34);
-    // require('./update')(files, metaJson, done)
-  }
-}
-function update() {
-  console.log(89);
-  return function (files, metalsmith, done) {
-    var metaJson = metalsmith.metadata()
-    console.log(files, metaJson);
-    done();
-    // require('./update')(files, metaJson, done)
-  }
+  });
+  await writeFileTree(dest, files);
+  // remove files from dest
+  const removeFiles = await readFiles(dest, {
+    hasContent: false,
+  });
+  removes(removeFiles, bzPreset.destination.removes, preset);
+  const removeFileNames = Object.keys(removeFiles);
+  removeFileNames.forEach(fs.removeSync);
 }
 
 function getPackage() {
