@@ -47,24 +47,26 @@ const utils = module.exports = {
       });
     });
   },
-  removes(files, removes, data) {
-    if (!removes) {
+  matchs(files, matchs, data, isEval = true) {
+    if (!matchs) {
       return false;
     }
     const fileNames = Object.keys(files);
-    const removeMap = {};
-    Object.keys(removes).forEach(glob => {
+    const matchMap = {};
+    Object.keys(matchs).forEach(glob => {
       fileNames.forEach(file => {
         if (match(file, glob, { dot: true })) {
-          const condition = removes[glob];
-          if (utils.evaluate(condition, data)) {
-            removeMap[file] = true;
+          const condition = matchs[glob];
+          if (isEval && utils.evaluate(condition, data)) {
+            matchMap[file] = true;
+          } else if (!isEval && condition) {
+            matchMap[file] = true;
           }
         }
       });
     });
     fileNames.forEach(file => {
-      if (!removeMap[file]) {
+      if (!matchMap[file]) {
         delete files[file];
       }
     });

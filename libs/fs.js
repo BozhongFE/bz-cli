@@ -102,22 +102,11 @@ const cfs = module.exports = {
       const filePath = path.join(dir, name);
       ensureDirSync(path.dirname(filePath));
       if (files[name].pipe) {
-        const writeStream = fs.createWriteStream(filePath);
-        files[name].pipe(writeStream);
+        // fix stream file, example: png
+        files[name].pipe(fs.createWriteStream(filePath));
       } else {
         writeFileSync(filePath, files[name]);
       }
-      if (name === 'src/assets/img/logo.png') {
-        // console.log(files[name]);
-      }
-      // if (name === 'src/assets/img/logo.png') {
-      //   // const readStream = fs.createReadStream(name);
-      //   // const writeStream = fs.createWriteStream(filePath);
-      //   // files[name].pipe(writeStream);
-      //   writeFileSync(filePath, files[name]);
-      // } else {
-      //   writeFileSync(filePath, files[name]);
-      // }
     });
   }
 };

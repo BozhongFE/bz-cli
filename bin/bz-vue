@@ -12,6 +12,7 @@ const ora = require('ora');
 const git = require('download-git-repo');
 const chalk = require('chalk');
 const _ = require('lodash');
+const Handlebars = require('handlebars');
 
 // gulp module
 const gulp = require('gulp');
@@ -24,12 +25,34 @@ const cleanCSS = require('gulp-clean-css');
 const autoprefixer = require('gulp-autoprefixer');
 const base64 = require('gulp-base64');
 // base module
-const { getPackageSrc, exists, cwd, debounce, filters, removes } = require('../libs/utils');
+const { getPackageSrc, exists, cwd, debounce, filters, matchs } = require('../libs/utils');
 const { debug, info, error } = require('../libs/log');
 const { getFile, readFiles, writeFileTree } = require('../libs/fs');
 // global variable
 const packageSrc = getPackageSrc();
 const xpkg = getPackage();
+
+// register handlebars helper
+Handlebars.registerHelper('if_eq', function (a, b, opts) {
+  return a === b
+    ? opts.fn(this)
+    : opts.inverse(this);
+});
+Handlebars.registerHelper('unless_eq', function (a, b, opts) {
+  return a === b
+    ? opts.inverse(this)
+    : opts.fn(this);
+});
+Handlebars.registerHelper('if_or', function (a, b, opts) {
+  return a || b
+    ? opts.fn(this)
+    : opts.inverse(this);
+});
+Handlebars.registerHelper('if_and', function (a, b, opts) {
+  return a && b
+    ? opts.fn(this)
+    : opts.inverse(this);
+});
 
 // define command
 program
@@ -39,6 +62,10 @@ program
 
 // console.log(xpkg);
 
+const isVueCli3 = Boolean(xpkg.scripts && xpkg.scripts.serve && xpkg.scripts.serve.match(/vue-cli-service/));
+if (!isVueCli3) {
+  throw new Error('本项目不是用 vue-cli@3.x 搭建的项目，不能使用 bz vue');
+}
 // inquirer.prompt([{
 //   type: 'confirm',
 //   message: 'Target directory exists. Continue?',
@@ -46,10 +73,6 @@ program
 //   default: true,
 // }]).then(answers => {
 //   if (answers.power) {
-//     const isVueCli3 = Boolean(xpkg.scripts && xpkg.scripts.serve && xpkg.scripts.serve.match(/vue-cli-service/));
-//     if (!isVueCli3) {
-//       throw new Error('本项目不是用 vue-cli@3.x 搭建的项目，不能使用 bz vue');
-//     }
 //     run();
 //   }
 // });
@@ -92,30 +115,46 @@ function run() {
 }
 
 async function generate(tmp, dest, done) {
+  build(tmp, dest, done);
+}
+
+async function build(tmp, dest, done) {
   const preset = getFile(resolve(tmp, 'preset.json'), true);
-  const bzPreset = getFile(resolve(tmp, 'bz.preset.json'), true);
-  // copy tmp files to dest
+  const bzPreset = require(resolve(tmp, 'template.preset.js'));
+  /**
+   * template perset: filters
+   */
   const files = await readFiles(resolve(tmp, 'template'));
-  for (const file in files) {
-    const name = resolve(resolve(tmp, 'template'), file);
-    if (isBinaryFileSync(name)) {
-      console.log(files[file]);
-    }
-  }
-  // console.log(Object.keys(files));
   filters(files, bzPreset.template.filters, preset);
   const fileNames = Object.keys(files);
+  // _.templateSettings.interpolate = /{{([\s\S]+?)}}/g;
   fileNames.forEach((key) => {
-    files[key] = _.template(files[key])(preset);
+    if (typeof files[key] === 'string') {
+      files[key] = Handlebars.compile(files[key])(preset);
+    }
   });
   await writeFileTree(dest, files);
-  // remove files from dest
+  /**
+   * destination preset: removes
+   */
   const removeFiles = await readFiles(dest, {
     hasContent: false,
   });
-  removes(removeFiles, bzPreset.destination.removes, preset);
+  matchs(removeFiles, bzPreset.destination.removes, preset);
   const removeFileNames = Object.keys(removeFiles);
   removeFileNames.forEach(fs.removeSync);
+  /**
+   * destination preset: transforms
+   */
+  const transformFiles = await readFiles(dest);
+  matchs(transformFiles, bzPreset.destination.transforms, preset, false);
+  const transformFileNames = Object.keys(transformFiles);
+  transformFileNames.forEach((key) => {
+    if (Object.prototype.toString.call(bzPreset.destination.transforms[key]) === '[object Function]') {
+      transformFiles[key] = bzPreset.destination.transforms[key](transformFiles[key], _);
+    }
+  });
+  await writeFileTree(dest, transformFiles);
 }
 
 function getPackage() {
