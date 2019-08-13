@@ -2,7 +2,7 @@
 
 // nodejs module
 const fs = require('fs-extra');
-const { resolve } = require('path');
+const path = require('path');
 const globby = require('globby');
 const { isBinaryFileSync } = require('isbinaryfile');
 // commander
@@ -13,6 +13,7 @@ const git = require('download-git-repo');
 const chalk = require('chalk');
 const _ = require('lodash');
 const Handlebars = require('handlebars');
+const rm = require('rimraf').sync;
 
 // gulp module
 const gulp = require('gulp');
@@ -25,7 +26,7 @@ const cleanCSS = require('gulp-clean-css');
 const autoprefixer = require('gulp-autoprefixer');
 const base64 = require('gulp-base64');
 // base module
-const { getPackageSrc, exists, cwd, debounce, filters, matchs } = require('../libs/utils');
+const { getPackageSrc, exists, cwd, debounce, filters, matchs, isFunction } = require('../libs/utils');
 const { debug, info, error } = require('../libs/log');
 const { getFile, readFiles, writeFileTree } = require('../libs/fs');
 // global variable
@@ -66,71 +67,102 @@ const isVueCli3 = Boolean(xpkg.scripts && xpkg.scripts.serve && xpkg.scripts.ser
 if (!isVueCli3) {
   throw new Error('本项目不是用 vue-cli@3.x 搭建的项目，不能使用 bz vue');
 }
-// inquirer.prompt([{
-//   type: 'confirm',
-//   message: 'Target directory exists. Continue?',
-//   name: 'power',
-//   default: true,
-// }]).then(answers => {
-//   if (answers.power) {
-//     run();
-//   }
-// });
 
-const templatePath = program.args[0] || 'BozhongFE/vue-template'
-run();
+start();
+async function start() {
+  const isCoverage = await fileCoverage();
+  if (isCoverage) {
+    const tmp = await downloadTemplate();
+    const answers = await appAsk(tmp);
+    generate(tmp, answers);
+  }
+  // console.log(isCoverage);
+  // fileCoverage(function() {
+  //   downloadTemplate(function(tmp) {
+  //     appAsk(tmp, function(preset) {
+  //       console.log(preset);
+  //     });
+  //   });
+  // });
+}
 
-function run() {
+/**
+ * File Coverage
+ */
+async function fileCoverage(callback) {
+  const answers = await inquirer.prompt([{
+    type: 'confirm',
+    message: 'Target directory exists. Continue?',
+    name: 'power',
+    default: true,
+  }]);
+  return answers.power;
+}
+
+/**
+ * Download Template
+ */
+function downloadTemplate(callback) {
+  const templatePath = program.args[0] || 'BozhongFE/vue-template';
   const uid = Math.random().toString(35).substr(2, 10);
-  const tmpPath = `/tmp/dme-${uid}`;
-  // is local
+  const tmpPath = `/tmp/bz-vue-template-${uid}`;
+  // local reading
   if (fs.existsSync(templatePath)) {
-    generate(templatePath, process.cwd(), function (err) {
-      if (err) console.error(err)
-      console.log('bz vue upgrade success')
-    })
-  } else {
-    var spinner = ora(`Downloading ${templatePath}`);
-    spinner.start()
-    // return require('../lib/generate')(projectName, '/code/project/dme')
-    git(templatePath, tmpPath, {}, function(err) {
-      spinner.stop()
+    return templatePath
+  }
+  // remote download
+  const spinner = ora(`Downloading ${templatePath}`);
+  spinner.start();
+  return new Promise(resolve => {
+    git(templatePath, tmpPath, {}, (err) => {
+      spinner.stop();
       if (err) {
         return console.error(chalk.red(err))
       }
-      console.log(`download ${templatePath.split('/')[1]} success`)
-      // process.on('exit', function () {
-      //   rm('/tmp/dme-' + uid)
-      // })
-      generate(tmpPath, process.cwd(), err => {
-        if (err) {
-          err.check = err.path.replace(tmpPath, templatePath)
-          console.error(err)
-        } else
-          console.log('bz vue upgrade success')
-      })
-      console.log('start1');
+      console.log(chalk.blue(`download ${templatePath} success`));
+      process.on('exit', () => {
+        rm(tmpPath);
+      });
+      resolve(tmpPath);
     })
+  });
+  
+}
+
+/**
+ * Application Ask
+ */
+function appAsk(tmp) {
+  const appPreset = require(path.resolve(tmp, 'app.preset.js'));
+  return inquirer.prompt(appPreset.prompts);
+}
+
+/**
+ * Build Template
+ */
+async function generate(tmp, answers) {
+  const dest = process.cwd();
+  let preset = getFile(path.resolve(tmp, 'preset.json'), true);
+  const appPreset = require(path.resolve(tmp, 'app.preset.js'));
+  /**
+   * Upgrade Preset Data
+   */
+  Object.assign(preset, answers);
+  if (isFunction(appPreset.presetTransform)) {
+    preset = appPreset.presetTransform(preset, _) || preset;
   }
-}
-
-async function generate(tmp, dest, done) {
-  build(tmp, dest, done);
-}
-
-async function build(tmp, dest, done) {
-  const preset = getFile(resolve(tmp, 'preset.json'), true);
-  const bzPreset = require(resolve(tmp, 'template.preset.js'));
+  
   /**
    * template perset: filters
    */
-  const files = await readFiles(resolve(tmp, 'template'));
-  filters(files, bzPreset.template.filters, preset);
+  const files = await readFiles(path.resolve(tmp, 'template'));
+  filters(files, appPreset.template.filters, preset);
   const fileNames = Object.keys(files);
-  // _.templateSettings.interpolate = /{{([\s\S]+?)}}/g;
   fileNames.forEach((key) => {
     if (typeof files[key] === 'string') {
-      files[key] = Handlebars.compile(files[key])(preset);
+      files[key] = Handlebars.compile(files[key])(Object.assign({
+        redirect: true,
+      }, preset));
     }
   });
   await writeFileTree(dest, files);
@@ -140,18 +172,18 @@ async function build(tmp, dest, done) {
   const removeFiles = await readFiles(dest, {
     hasContent: false,
   });
-  matchs(removeFiles, bzPreset.destination.removes, preset);
+  matchs(removeFiles, appPreset.destination.removes, preset);
   const removeFileNames = Object.keys(removeFiles);
   removeFileNames.forEach(fs.removeSync);
   /**
    * destination preset: transforms
    */
   const transformFiles = await readFiles(dest);
-  matchs(transformFiles, bzPreset.destination.transforms, preset, false);
+  matchs(transformFiles, appPreset.destination.transforms, preset, false);
   const transformFileNames = Object.keys(transformFiles);
   transformFileNames.forEach((key) => {
-    if (Object.prototype.toString.call(bzPreset.destination.transforms[key]) === '[object Function]') {
-      transformFiles[key] = bzPreset.destination.transforms[key](transformFiles[key], _);
+    if (isFunction(appPreset.destination.transforms[key])) {
+      transformFiles[key] = appPreset.destination.transforms[key](transformFiles[key], preset, _);
     }
   });
   await writeFileTree(dest, transformFiles);

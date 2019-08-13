@@ -17,6 +17,9 @@ const utils = module.exports = {
     clearTimeout(debounceTimeout);
     debounceTimeout = setTimeout(callback, 120);
   },
+  isFunction(func) {
+    return Object.prototype.toString.call(func) === '[object Function]';
+  },
   /**
    * Evaluate an expression in meta.json in the context of
    * prompt answers data.
