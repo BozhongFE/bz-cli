@@ -1,36 +1,35 @@
 {
-  "_from": "git+https://github.com/BozhongFE/bz-cli.git",
-  "_id": "bz-cli@1.0.0-alpha.14",
-  "_inBundle": false,
-  "_integrity": "",
-  "_location": "/bz-cli",
-  "_phantomChildren": {},
-  "_requested": {
-    "type": "git",
-    "raw": "git+https://github.com/BozhongFE/bz-cli.git",
-    "rawSpec": "git+https://github.com/BozhongFE/bz-cli.git",
-    "saveSpec": "git+https://github.com/BozhongFE/bz-cli.git",
-    "fetchSpec": "https://github.com/BozhongFE/bz-cli.git",
-    "gitCommittish": null
-  },
-  "_requiredBy": [
-    "#USER",
-    "/"
-  ],
-  "_resolved": "git+https://github.com/BozhongFE/bz-cli.git#135e43cd72fbfe70752184c6e8874f576c48cb41",
-  "_spec": "git+https://github.com/BozhongFE/bz-cli.git",
-  "_where": "E:\\code.bzdev.net\\source.seedit.com\\activity\\zhuanjia\\wap",
-  "author": {
-    "name": "unclay",
-    "email": "wcl58981298@gmail.com"
+  "name": "bz-cli",
+  "version": "1.0.0-alpha.14",
+  "description": "A command-line tool for BozhongFE",
+  "main": "index.js",
+  "scripts": {
+    "test": "npm run eslint & npm run mocha",
+    "eslint": "eslint --fix libs/*.js bin/*",
+    "mocha": "mocha test/**/*.test.js"
   },
   "bin": {
     "bz": "bin/bz"
   },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/BozhongFE/bz-cli.git"
+  },
+  "keywords": [
+    "bash",
+    "shell",
+    "node",
+    "bin",
+    "command",
+    "command-line",
+    "cli"
+  ],
+  "author": "unclay <wcl58981298@gmail.com>",
+  "license": "ISC",
   "bugs": {
     "url": "https://github.com/BozhongFE/bz-cli/issues"
   },
-  "bundleDependencies": false,
+  "homepage": "https://github.com/BozhongFE/bz-cli#readme",
   "dependencies": {
     "chalk": "^2.4.2",
     "commander": "^2.20.0",
@@ -56,34 +55,9 @@
     "ora": "^3.4.0",
     "superagent": "^5.1.0"
   },
-  "deprecated": false,
-  "description": "A command-line tool for BozhongFE",
   "devDependencies": {
     "chai": "^4.2.0",
     "eslint": "^5.16.0",
     "mocha": "^6.1.4"
-  },
-  "homepage": "https://github.com/BozhongFE/bz-cli#readme",
-  "keywords": [
-    "bash",
-    "shell",
-    "node",
-    "bin",
-    "command",
-    "command-line",
-    "cli"
-  ],
-  "license": "ISC",
-  "main": "index.js",
-  "name": "bz-cli",
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/BozhongFE/bz-cli.git"
-  },
-  "scripts": {
-    "eslint": "eslint --fix libs/*.js bin/*",
-    "mocha": "mocha test/**/*.test.js",
-    "test": "npm run eslint & npm run mocha"
-  },
-  "version": "1.0.0-alpha.13"
+  }
 }
