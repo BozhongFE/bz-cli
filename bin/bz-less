@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
 // nodejs module
-const { statSync } = require('fs');
+const { statSync, readJsonSync } = require('fs-extra');
 const { resolve } = require('path');
 // commander
 const program = require('commander');
@@ -18,7 +18,6 @@ const base64 = require('gulp-base64');
 // base module
 const { getPackageSrc, exists, cwd, debounce } = require('../libs/utils');
 const { debug, info, error } = require('../libs/log');
-const { getFile } = require('../libs/fs');
 // global variable
 const packageSrc = getPackageSrc();
 let pkg = getPackage();
@@ -133,7 +132,7 @@ function initAppLess(conf, isDebug) {
 }
 
 function getPackage() {
-  const xpkg = getFile(packageSrc, true);
+  const xpkg = readJsonSync(packageSrc);
   xpkg.application = xpkg.application || {};
   xpkg.application.less = xpkg.application.less || [];
   xpkg.debug = xpkg.application.debug || false;

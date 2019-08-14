@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
 // nodejs module
-const { readdirSync, statSync, writeFileSync, existsSync, readFileSync } = require('fs');
+const { readdirSync, statSync, writeFileSync, existsSync, readFileSync, readJsonSync } = require('fs-extra');
 const { resolve } = require('path');
 // commander
 const program = require('commander');
@@ -12,7 +12,6 @@ const request = require('superagent');
 const { getPackageSrc, cwd, debounce } = require('../libs/utils');
 const { debug, info, error } = require('../libs/log');
 const bzConf = require('../libs/config');
-const { getFile } = require('../libs/fs');
 
 // define command
 program
@@ -42,7 +41,7 @@ function start() {
   debug(isDebug, '当前配置', configFile);
   
   // 获取 config
-  cliConfig = getFile(configFile);
+  cliConfig = readJsonSync(configFile);
   // 注入全局变量（例如：域名）
   if (cliConfig.global) {
     Object.assign(global, cliConfig.global);
@@ -186,7 +185,7 @@ function RM_SCHEME(domain){
 }
 
 function getPackage() {
-  const xpkg = getFile(packageSrc);
+  const xpkg = readJsonSync(packageSrc);
   xpkg.application = xpkg.application || {};
   xpkg.application.html = xpkg.application.html || {};
   xpkg.debug = xpkg.application.html.debug || xpkg.application.debug || false;

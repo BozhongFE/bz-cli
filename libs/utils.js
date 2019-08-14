@@ -17,6 +17,7 @@ const utils = module.exports = {
     clearTimeout(debounceTimeout);
     debounceTimeout = setTimeout(callback, 120);
   },
+  // copy from vue-cli
   isFunction(func) {
     return Object.prototype.toString.call(func) === '[object Function]';
   },

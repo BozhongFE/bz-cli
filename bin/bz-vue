@@ -3,35 +3,21 @@
 // nodejs module
 const fs = require('fs-extra');
 const path = require('path');
-const globby = require('globby');
-const { isBinaryFileSync } = require('isbinaryfile');
 // commander
 const program = require('commander');
 const inquirer = require('inquirer');
 const ora = require('ora');
 const git = require('download-git-repo');
-const chalk = require('chalk');
 const _ = require('lodash');
 const Handlebars = require('handlebars');
-const rm = require('rimraf').sync;
 
-// gulp module
-const gulp = require('gulp');
-const watch = require('gulp-watch');
-const gulpif = require('gulp-if');
-const header = require('gulp-header');
-const less = require('gulp-less');
-const rename = require('gulp-rename');
-const cleanCSS = require('gulp-clean-css');
-const autoprefixer = require('gulp-autoprefixer');
-const base64 = require('gulp-base64');
 // base module
-const { getPackageSrc, exists, cwd, debounce, filters, matchs, isFunction } = require('../libs/utils');
-const { debug, info, error } = require('../libs/log');
-const { getFile, readFiles, writeFileTree } = require('../libs/fs');
+const { getPackageSrc, filters, matchs, isFunction } = require('../libs/utils');
+const { info, error } = require('../libs/log');
+const { readFiles, writeFileTree } = require('../libs/fs');
 // global variable
 const packageSrc = getPackageSrc();
-const xpkg = getPackage();
+const xpkg = fs.readJsonSync(packageSrc);
 
 // register handlebars helper
 Handlebars.registerHelper('if_eq', function (a, b, opts) {
@@ -61,8 +47,6 @@ program
   // .option('-p, --preset <presetName>', 'Skip prompts and use saved or remote preset')
   .parse(process.argv);
 
-// console.log(xpkg);
-
 const isVueCli3 = Boolean(xpkg.scripts && xpkg.scripts.serve && xpkg.scripts.serve.match(/vue-cli-service/));
 if (!isVueCli3) {
   throw new Error('本项目不是用 vue-cli@3.x 搭建的项目，不能使用 bz vue');
@@ -76,25 +60,17 @@ async function start() {
     const answers = await appAsk(tmp);
     generate(tmp, answers);
   }
-  // console.log(isCoverage);
-  // fileCoverage(function() {
-  //   downloadTemplate(function(tmp) {
-  //     appAsk(tmp, function(preset) {
-  //       console.log(preset);
-  //     });
-  //   });
-  // });
 }
 
 /**
  * File Coverage
  */
-async function fileCoverage(callback) {
+async function fileCoverage() {
   const answers = await inquirer.prompt([{
     type: 'confirm',
-    message: 'Target directory exists. Continue?',
+    message: 'Target directory exists. Continue（Suggest Backup）?',
     name: 'power',
-    default: true,
+    default: false,
   }]);
   return answers.power;
 }
@@ -102,13 +78,13 @@ async function fileCoverage(callback) {
 /**
  * Download Template
  */
-function downloadTemplate(callback) {
+function downloadTemplate() {
   const templatePath = program.args[0] || 'BozhongFE/vue-template';
   const uid = Math.random().toString(35).substr(2, 10);
   const tmpPath = `/tmp/bz-vue-template-${uid}`;
   // local reading
   if (fs.existsSync(templatePath)) {
-    return templatePath
+    return templatePath;
   }
   // remote download
   const spinner = ora(`Downloading ${templatePath}`);
@@ -117,14 +93,14 @@ function downloadTemplate(callback) {
     git(templatePath, tmpPath, {}, (err) => {
       spinner.stop();
       if (err) {
-        return console.error(chalk.red(err))
+        return error(err);
       }
-      console.log(chalk.blue(`download ${templatePath} success`));
+      info(`download ${templatePath} success`);
       process.on('exit', () => {
-        rm(tmpPath);
+        fs.removeSync(tmpPath);
       });
       resolve(tmpPath);
-    })
+    });
   });
   
 }
@@ -142,7 +118,7 @@ function appAsk(tmp) {
  */
 async function generate(tmp, answers) {
   const dest = process.cwd();
-  let preset = getFile(path.resolve(tmp, 'preset.json'), true);
+  let preset = fs.readJsonSync(path.resolve(tmp, 'preset.json'));
   const appPreset = require(path.resolve(tmp, 'app.preset.js'));
   /**
    * Upgrade Preset Data
@@ -187,9 +163,4 @@ async function generate(tmp, answers) {
     }
   });
   await writeFileTree(dest, transformFiles);
-}
-
-function getPackage() {
-  const xpkg = getFile(packageSrc, true);
-  return xpkg;
 }

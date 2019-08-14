@@ -64,3 +64,8 @@
 ## 1.0.0-alpha.13
 
 - [optimize] [command] 优化 css、js、less
+
+## 1.0.0-alpha.14
+
+- [new] [vue] 新增 `bz vue` 命令，用于 vue-cli@3.x 二次模板渲染
+- [optimize] [fs] fs-extra 替代 fs

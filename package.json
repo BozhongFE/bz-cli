@@ -1,6 +1,6 @@
 {
   "_from": "git+https://github.com/BozhongFE/bz-cli.git",
-  "_id": "bz-cli@1.0.0-alpha.13",
+  "_id": "bz-cli@1.0.0-alpha.14",
   "_inBundle": false,
   "_integrity": "",
   "_location": "/bz-cli",
@@ -54,7 +54,6 @@
     "lodash": "^4.17.11",
     "node-cli-config": "^0.0.1",
     "ora": "^3.4.0",
-    "rimraf": "^2.6.3",
     "superagent": "^5.1.0"
   },
   "deprecated": false,
