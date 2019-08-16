@@ -19,4 +19,5 @@ bz less
 bz css
 bz js
 bz html
+bz vue
 ```

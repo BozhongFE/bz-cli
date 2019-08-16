@@ -81,11 +81,11 @@ async function fileCoverage() {
 function downloadTemplate() {
   const templatePath = program.args[0] || 'BozhongFE/vue-template';
   const uid = Math.random().toString(35).substr(2, 10);
-  const tmpPath = `/tmp/bz-vue-template-${uid}`;
   // local reading
   if (fs.existsSync(templatePath)) {
     return templatePath;
   }
+  const tmpPath = `/tmp/bz-vue-template-${uid}`;
   // remote download
   const spinner = ora(`Downloading ${templatePath}`);
   spinner.start();
@@ -97,7 +97,9 @@ function downloadTemplate() {
       }
       info(`download ${templatePath} success`);
       process.on('exit', () => {
-        fs.removeSync(tmpPath);
+        if (fs.existsSync(tmpPath)) {
+          fs.removeSync(tmpPath);
+        }
       });
       resolve(tmpPath);
     });
@@ -150,7 +152,12 @@ async function generate(tmp, answers) {
   });
   matchs(removeFiles, appPreset.destination.removes, preset);
   const removeFileNames = Object.keys(removeFiles);
-  removeFileNames.forEach(fs.removeSync);
+  removeFileNames.filter(item => {
+    if (fs.existsSync(item)) {
+      return true;
+    }
+  });
+  removeFileNames.map(fs.removeSync);
   /**
    * destination preset: transforms
    */
@@ -163,4 +170,10 @@ async function generate(tmp, answers) {
     }
   });
   await writeFileTree(dest, transformFiles);
+  /**
+   * complete
+   */
+  if (isFunction(appPreset.complete)) {
+    appPreset.complete(preset, _);
+  }
 }
