@@ -5,7 +5,7 @@
 ## 使用方法
 
 ```bash
-npm install -g @bz/cli
+npm install -g https://github.com/BozhongFE/bz-login#v1.0.0
 bz <command> [options]
 ```
 
