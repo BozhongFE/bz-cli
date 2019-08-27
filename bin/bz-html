@@ -9,7 +9,7 @@ const program = require('commander');
 const watch = require('gulp-watch');
 const request = require('superagent');
 // base module
-const { getPackageSrc, cwd, debounce } = require('../libs/utils');
+const { getPackageSrc, cwd, debounce, getTime } = require('../libs/utils');
 const { debug, info, error } = require('../libs/log');
 const bzConf = require('../libs/config');
 
@@ -122,15 +122,6 @@ function buildOne(file, callback) {
     }
     callback && callback();
   });
-}
-
-function getTime() {
-  const date = new Date();
-  const format = num => num < 10 ? `0${num}` : num;
-  const hour = format(date.getHours());
-  const minute = format(date.getMinutes());
-  const second = format(date.getSeconds());
-  return `${hour}:${minute}:${second}`;
 }
 
 /**

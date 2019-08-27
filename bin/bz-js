@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
 // nodejs module
-const { statSync, readJsonSync } = require('fs');
+const { statSync, readJsonSync } = require('fs-extra');
 const { resolve } = require('path');
 // commander
 const program = require('commander');
@@ -15,7 +15,7 @@ const concat = require('gulp-concat');
 const uglify = require('gulp-uglify');
 
 // base module
-const { getPackageSrc, exists, cwd, debounce } = require('../libs/utils');
+const { getPackageSrc, exists, cwd, debounce, getTime } = require('../libs/utils');
 const { debug, info, error } = require('../libs/log');
 // global variable
 const packageSrc = getPackageSrc();
@@ -153,12 +153,4 @@ function getPackage() {
   xpkg.application.js = xpkg.application.js || [];
   xpkg.debug = xpkg.application.debug || false;
   return xpkg;
-}
-function getTime() {
-  const date = new Date();
-  const format = num => num < 10 ? `0${num}` : num;
-  const hour = format(date.getHours());
-  const minute = format(date.getMinutes());
-  const second = format(date.getSeconds());
-  return `${hour}:${minute}:${second}`;
 }

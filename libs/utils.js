@@ -75,4 +75,12 @@ const utils = module.exports = {
       }
     });
   },
+  getTime() {
+    const date = new Date();
+    const format = num => num < 10 ? `0${num}` : num;
+    const hour = format(date.getHours());
+    const minute = format(date.getMinutes());
+    const second = format(date.getSeconds());
+    return `${hour}:${minute}:${second}`;
+  },
 };

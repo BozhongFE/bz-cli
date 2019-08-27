@@ -2,7 +2,7 @@
  * 命令行工具的配置文件
  */
 /* eslint-disable no-console */
-const { existsSync, readFileSync } = require('fs');
+const { existsSync, readFileSync } = require('fs-extra');
 const cliConfig = require('node-cli-config');
 
 const rc = module.exports = cliConfig({

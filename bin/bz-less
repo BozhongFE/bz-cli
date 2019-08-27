@@ -16,7 +16,7 @@ const cleanCSS = require('gulp-clean-css');
 const autoprefixer = require('gulp-autoprefixer');
 const base64 = require('gulp-base64');
 // base module
-const { getPackageSrc, exists, cwd, debounce } = require('../libs/utils');
+const { getPackageSrc, exists, cwd, debounce, getTime } = require('../libs/utils');
 const { debug, info, error } = require('../libs/log');
 // global variable
 const packageSrc = getPackageSrc();
@@ -38,7 +38,7 @@ if (program.watch) {
       if (vinyl.path.match(/.less$/)) {
         buildBefore(() => {
           info(`[${getTime()}]`, 'less 编译开始');
-          const appLess = pkg.application.less.filter((item) => item.from === vinyl.path);
+          const appLess = pkg.application.less.filter((item) => (item.from === vinyl.path) || (item.watch && item.watch.includes(vinyl.path)));
           build(appLess);
           info(`[${getTime()}]`, 'less 编译结束');
         });
@@ -103,17 +103,21 @@ function build(appLess) {
     const index = item.__index__;
     debug(item.debug, `源文件[${index}]:`, item.from);
     debug(item.debug, `目标文件[${index}]:`, item.to, item.cssmin ? '(cssmin)' : '');
-    gulp.src(item.from)
-      .pipe(less(item.options))
-      .pipe(base64(item.base64))
-      .pipe(autoprefixer())
-      .pipe(rename(item.name))
-      .pipe(gulpif(item.cssmin, cleanCSS(item.cleanCSS)))
-      .pipe(header(item.header, {
-        pkg,
-        item,
-      }))
-      .pipe(gulp.dest(item.dirs));
+    try {
+      gulp.src(item.from)
+        .pipe(less(item.options))
+        .pipe(base64(item.base64))
+        .pipe(autoprefixer())
+        .pipe(rename(item.name))
+        .pipe(gulpif(item.cssmin, cleanCSS(item.cleanCSS)))
+        .pipe(header(item.header, {
+          pkg,
+          item,
+        }))
+        .pipe(gulp.dest(item.dirs));
+    } catch(err) {
+      console.log(33333333);
+    }
   });
 }
 
@@ -128,6 +132,9 @@ function initAppLess(conf, isDebug) {
   conf.to = resolve(cwd, conf.to);
   conf.name = conf.to.match(/[^/]+\.css$/i)[0];
   conf.dirs = conf.to.replace(/\/[^/]+\.css$/i, '');
+  if (conf.watch) {
+    conf.watch = conf.watch.map(item => resolve(cwd, item));
+  }
   return conf;
 }
 
@@ -137,12 +144,4 @@ function getPackage() {
   xpkg.application.less = xpkg.application.less || [];
   xpkg.debug = xpkg.application.debug || false;
   return xpkg;
-}
-function getTime() {
-  const date = new Date();
-  const format = num => num < 10 ? `0${num}` : num;
-  const hour = format(date.getHours());
-  const minute = format(date.getMinutes());
-  const second = format(date.getSeconds());
-  return `${hour}:${minute}:${second}`;
 }

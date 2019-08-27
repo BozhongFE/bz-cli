@@ -69,3 +69,7 @@
 
 - [new] [vue] 新增 `bz vue` 命令，用于 vue-cli@3.x 二次模板渲染
 - [optimize] [fs] fs-extra 替代 fs
+
+## 1.0.0
+
+- [public] 调整更名为 `@bz/cli` 并正式发布 `1.0.0` 版本
