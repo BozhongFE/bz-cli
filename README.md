@@ -22,3 +22,37 @@ bz js
 bz html
 bz build
 ```
+
+### bz build - V1.1.0新增
+> 用于组件打包，默认打包[pageage.json[name]].umd.js和esm.js，可在执行路径下新建自定义打包配置文件build.config.js
+```javascript
+// 示例
+const curDirPath = process.cwd();
+const config = require(curDirPath + '/package.json');
+const path = require('path');
+const name = config.name;
+
+exports = {
+  'dist-esm': {
+    input: curDirPath + '/src/index.js',
+    format: 'es',
+    moduleName: name,
+    output: path.join(curDirPath + '/dist/', name + '.esm.js'),
+    hasExternal: true,
+  },
+  'dist-core-esm': {
+    input: curDirPath + '/src/module/core.js',
+    format: 'es',
+    moduleName: name,
+    output: path.join(curDirPath + '/dist/', name + '-core.esm.js'),
+    hasExternal: true,
+  },
+  'dist-axios-esm': {
+    input: curDirPath + '/src/index-taro.js',
+    format: 'es',
+    moduleName: name,
+    output: path.join(curDirPath + '/dist/', name + '-taro.esm.js'),
+    hasExternal: true,
+  }
+}
+```
